@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project is a professional portfolio website designed to showcase the developer's technical skills, software engineering experience, projects, education, certifications, achievements, and contact information.
+This project is a professional portfolio website designed to showcase the developer's technical skills, software engineering experience, projects, education, and contact information.
 
 The primary purpose of the website is to:
 
@@ -133,8 +133,6 @@ The portfolio should include:
 - Projects
 - Experience
 - Education
-- Certifications
-- Achievements
 - Contact
 - Resume
 

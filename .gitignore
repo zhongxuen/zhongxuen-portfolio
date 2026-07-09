@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 dist
+
+docs/ADMIN.md
+compile-progress.ps1
+progress.md
+project-tree.txt
