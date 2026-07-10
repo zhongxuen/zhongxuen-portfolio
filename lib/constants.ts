@@ -6,6 +6,7 @@ export const AUTHOR = {
     email: "gohzx2006@gmail.com",
     phone: "+60 10-772 2127",
     github: "https://github.com/zhongxuen",
+    githubUsername: "zhongxuen",
     linkedin: "https://www.linkedin.com/in/goh-zhong-xuen-14020a3b0/",
     jobstreet: "https://my.jobstreet.com/profiles/goh-zhong-xuen-GP4B6t54MG",
 };

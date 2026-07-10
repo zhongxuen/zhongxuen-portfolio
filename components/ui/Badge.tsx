@@ -1,7 +1,7 @@
 import { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-type BadgeVariant = "default" | "outline" | "success";
+type BadgeVariant = "default" | "outline" | "success" | "secondary";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
     variant?: BadgeVariant;
@@ -11,6 +11,7 @@ const variantStyles: Record<BadgeVariant, string> = {
     default: "bg-card text-muted border border-muted/20",
     outline: "bg-transparent text-primary border border-primary/40",
     success: "bg-success/10 text-success border border-success/30",
+    secondary: "bg-secondary/10 text-secondary border border-secondary/30",
 };
 
 /**
