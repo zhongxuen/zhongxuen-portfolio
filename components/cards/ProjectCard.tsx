@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ExternalLink, Star } from "lucide-react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { Project } from "@/types/project";
@@ -11,13 +12,15 @@ export interface ProjectCardProps {
 
 /**
  * Displays a single project summary: title, description, tech stack,
- * and links to the repo / live demo. `stars` and `language` are
- * GitHub-derived fields (types/project.ts) — they render only when
- * present, since local-only project entries won't have them until
- * merged via adapters/githubProjectAdapter.ts.
+ * and links to the repo / live demo. Title links to the project detail
+ * page (/projects/[slug]) via app/projects/[slug]/page.tsx.
+ * `stars` and `language` are GitHub-derived fields (types/project.ts) —
+ * they render only when present, since local-only project entries won't
+ * have them until merged via adapters/githubProjectAdapter.ts.
  */
 export function ProjectCard({ project }: ProjectCardProps) {
     const {
+        slug,
         title,
         description,
         technologies,
@@ -31,7 +34,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
     return (
         <Card interactive className="flex h-full flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
-                <CardTitle>{title}</CardTitle>
+                <Link href={`/projects/${slug}`} className="hover:text-primary transition-colors">
+                    <CardTitle>{title}</CardTitle>
+                </Link>
                 {featured && <Badge variant="success">Featured</Badge>}
             </div>
 
