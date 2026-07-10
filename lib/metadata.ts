@@ -1,104 +1,75 @@
 import type { Metadata } from "next";
-import {
-    SITE_NAME,
-    SITE_URL,
-    SITE_DESCRIPTION,
-    AUTHOR,
-    DEFAULT_OG_IMAGE,
-    TWITTER_HANDLE,
-    KEYWORDS,
-} from "@/lib/constants";
+import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "./constants";
 
-/**
- * Options for generating page-level metadata.
- * Extend as new sections/pages need custom SEO fields.
- */
-interface PageMetadataOptions {
-    /** Page-specific title. Combined with SITE_NAME unless isHome is true. */
+interface MetadataOptions {
     title?: string;
-
-    /** Page-specific description. Falls back to SITE_DESCRIPTION. */
     description?: string;
-
-    /** Relative or absolute path to page (used for canonical + OG URL). */
     path?: string;
-
-    /** Relative or absolute OG image path. Falls back to DEFAULT_OG_IMAGE. */
-    ogImage?: string;
-
-    /** Set true only for the root "/" page (uses bare SITE_NAME as title). */
     isHome?: boolean;
 }
 
-/**
- * Builds a Next.js Metadata object for a given page.
- * Use in each route's `generateMetadata` or static `metadata` export.
- *
- * Example:
- *   export const metadata = buildMetadata({
- *       title: "Projects",
- *       description: "Selected software projects by Goh Zhong Xuen.",
- *       path: "/projects",
- *   });
- */
-export function buildMetadata(options: PageMetadataOptions = {}): Metadata {
-    const {
-        title,
-        description = SITE_DESCRIPTION,
-        path = "/",
-        ogImage = DEFAULT_OG_IMAGE,
-        isHome = false,
-    } = options;
-
-    const resolvedTitle = isHome
+export function buildMetadata({
+    title,
+    description = SITE_DESCRIPTION,
+    path = "",
+    isHome = false,
+}: MetadataOptions = {}): Metadata {
+    const pageTitle = isHome
         ? SITE_NAME
         : title
-        ? `${title} | ${SITE_NAME}`
-        : SITE_NAME;
+          ? `${title} | ${SITE_NAME}`
+          : SITE_NAME;
 
-    const url = new URL(path, SITE_URL).toString();
-    const imageUrl = new URL(ogImage, SITE_URL).toString();
+    const url = `${SITE_URL}${path}`;
 
     return {
-        title: resolvedTitle,
-        description,
-        keywords: [...KEYWORDS],
-        authors: [{ name: AUTHOR.name, url: `https://github.com/${AUTHOR.githubUsername}` }],
-        creator: AUTHOR.name,
         metadataBase: new URL(SITE_URL),
+        title: pageTitle,
+        description,
+        keywords: [
+            "Software Engineer",
+            "Portfolio",
+            "Next.js",
+            "React",
+            "TypeScript",
+            "Java",
+            "Python",
+            "PHP",
+            "Supabase",
+            "Malaysia",
+            "APU",
+        ],
         alternates: {
             canonical: url,
         },
         openGraph: {
-            title: resolvedTitle,
+            title: pageTitle,
             description,
             url,
             siteName: SITE_NAME,
+            locale: "en_MY",
+            type: "website",
             images: [
                 {
-                    url: imageUrl,
+                    url: "/images/og-image.png",
                     width: 1200,
                     height: 630,
-                    alt: resolvedTitle,
+                    alt: SITE_NAME,
                 },
             ],
-            locale: "en_US",
-            type: "website",
         },
         twitter: {
             card: "summary_large_image",
-            title: resolvedTitle,
+            title: pageTitle,
             description,
-            images: [imageUrl],
-            ...(TWITTER_HANDLE ? { creator: TWITTER_HANDLE } : {}),
+            images: ["/images/og-image.png"],
         },
         robots: {
             index: true,
             follow: true,
-            googleBot: {
-                index: true,
-                follow: true,
-            },
+        },
+        icons: {
+            icon: "/favicon.ico",
         },
     };
 }

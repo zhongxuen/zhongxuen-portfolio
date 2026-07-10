@@ -6,19 +6,12 @@
  * - components/layout/Header.tsx, components/navigation/*
  */
 
-export interface NavItem {
-    /** Unique identifier, e.g. "about", "projects" */
+export interface NavigationItem {
     id: string;
-
-    /** Display label, e.g. "About" */
     label: string;
-
-    /** Destination path or anchor, e.g. "/about" or "#projects" */
     href: string;
-
-    /** Whether this link points to an external site (opens in new tab) */
     external?: boolean;
-
-    /** Optional nested items, e.g. for a dropdown menu */
-    children?: NavItem[];
+    children?: NavigationItem[];
 }
+
+export type NavItem = NavigationItem;

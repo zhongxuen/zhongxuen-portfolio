@@ -1,11 +1,6 @@
-import { NavItem } from "@/types/navigation";
+import { NavigationItem } from "@/types/navigation";
 
-export const navigation: NavItem[] = [
-    {
-        id: "home",
-        label: "Home",
-        href: "/",
-    },
+export const navigation: NavigationItem[] = [
     {
         id: "about",
         label: "About",

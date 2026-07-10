@@ -1,41 +1,19 @@
-/**
- * Central site-wide constants derived from CV.md / project identity.
- *
- * Single source of truth for author info, site metadata defaults,
- * and values referenced across lib/metadata.ts, layout.tsx, and
- * components (Footer, Hero, structured data, etc.).
- *
- * Do not duplicate these values in components — import from here.
- */
-
-export const SITE_NAME = "Goh Zhong Xuen | Portfolio";
-
-export const SITE_URL =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://your-domain.dev";
-
-export const SITE_DESCRIPTION =
-    "Portfolio of Goh Zhong Xuen, a Software Engineering diploma student specializing in full-stack development, UI/UX design, and software systems.";
-
 export const AUTHOR = {
     name: "Goh Zhong Xuen",
+    firstName: "Zhong Xuen",
     role: "Software Engineering Student",
-    email: "gohzx2006@gmail.com",
-    phone: "+6010-7722127",
     location: "Selangor, Malaysia",
-    githubUsername: "zhongxuen",
-} as const;
+    email: "gohzx2006@gmail.com",
+    phone: "+60 10-772 2127",
+    github: "https://github.com/zhongxuen",
+    linkedin: "https://www.linkedin.com/in/goh-zhong-xuen-14020a3b0/",
+    jobstreet: "https://my.jobstreet.com/profiles/goh-zhong-xuen-GP4B6t54MG",
+};
 
-export const DEFAULT_OG_IMAGE = "/og/default.png";
+export const SITE_NAME = "Goh Zhong Xuen Portfolio";
 
-export const TWITTER_HANDLE: string | undefined = undefined;
+export const SITE_DESCRIPTION =
+    "Software Engineering student at Asia Pacific University building full-stack applications, UI/UX solutions, and modern web technologies.";
 
-export const KEYWORDS = [
-    "Goh Zhong Xuen",
-    "Software Engineer",
-    "Full Stack Developer",
-    "Portfolio",
-    "Next.js",
-    "TypeScript",
-    "React",
-    "Software Engineering Intern",
-] as const;
+export const SITE_URL =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
