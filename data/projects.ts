@@ -63,6 +63,24 @@ export const projects: Project[] = [
         order: 4,
     },
     {
+        slug: "jommakan-website-interface",
+        title: "JomMakan Website Interface",
+        description:
+            "A static UI prototype for a restaurant management system (RMS), covering dashboard, POS, reservations, inventory, customer, staff, and promotions views. Built as a frontend-only interface without persistent database functionality.",
+        technologies: ["HTML", "Tailwind CSS", "JavaScript"],
+        githubUrl: "",
+        githubRepo: "JomMakan-Website-Interface",
+        keyFeatures: [
+            "Multi-view sidebar navigation (Dashboard, POS, Reservations, Inventory, Customers, Staff, Promotions)",
+            "Inventory CRUD demo with mock data state",
+            "Staff roster with duty status indicators",
+            "Promotions and loyalty program management table",
+            "Optional Firebase/Firestore integration scaffold with automatic fallback to mock data mode",
+        ],
+        featured: false,
+        order: 5,
+    },
+    {
         slug: "travel-expertise-ai-chatbot",
         title: "Travel Expertise AI Chatbot",
         description:
@@ -75,6 +93,6 @@ export const projects: Project[] = [
             "Structured dialogue system",
         ],
         featured: false,
-        order: 5,
+        order: 6,
     },
 ];
