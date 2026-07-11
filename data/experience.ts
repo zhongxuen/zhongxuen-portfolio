@@ -5,9 +5,10 @@ export const experience: Experience[] = [
         id: "tuition-teacher-2024",
         role: "Part-Time Tuition Teacher",
         company: "Little Master Education Holdings",
-        location: "https://littlemaster.com.my/",
+        companyUrl: "https://littlemaster.com.my/",
+        location: "Selangor, Malaysia",
         employmentType: "Part-time",
-        startDate: "2024-01-01",
+        startDate: "2026-02-26",
         endDate: "Present",
         description:
             "Teach Malay, Chinese, and English subjects to students, creating tailored lesson plans and tracking progress.",
