@@ -4,8 +4,8 @@ export const experience: Experience[] = [
     {
         id: "tuition-teacher-2024",
         role: "Part-Time Tuition Teacher",
-        company: "Self-Employed",
-        location: "Selangor, Malaysia",
+        company: "Little Master Education Holdings",
+        location: "https://littlemaster.com.my/",
         employmentType: "Part-time",
         startDate: "2024-01-01",
         endDate: "Present",

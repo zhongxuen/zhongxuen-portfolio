@@ -18,7 +18,7 @@ export const education: Education[] = [
             "Software Engineering Principles",
         ],
         description:
-            "Expected graduation: 2027. Specializing in software engineering with a focus on full-stack development.",
+            "Expected graduation: 2026. Specializing in software engineering with a focus on full-stack development.",
         featured: true,
     },
     {

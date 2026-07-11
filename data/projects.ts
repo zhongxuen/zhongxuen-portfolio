@@ -7,7 +7,8 @@ export const projects: Project[] = [
         description:
             "Full-stack job listing platform with a cloud backend, authentication, and real-time database queries.",
         technologies: ["TypeScript", "Supabase"],
-        githubUrl: "https://github.com/zhongxuen/jobnow",
+        githubUrl: "",
+        githubRepo: "JobNow-Application-Capstone-Project",
         keyFeatures: [
             "Authentication",
             "Real-time database queries",
@@ -22,7 +23,8 @@ export const projects: Project[] = [
         description:
             "Desktop application for managing tutorial centre operations using object-oriented design and file persistence.",
         technologies: ["Java", "OOP", "File I/O"],
-        githubUrl: "https://github.com/zhongxuen/advanced-tutorial-centre-system",
+        githubUrl: "",
+        githubRepo: "Advanced-Tution-Centre-Management-Java",
         keyFeatures: [
             "Structured student management system",
             "File-based data persistence",
@@ -36,7 +38,8 @@ export const projects: Project[] = [
         description:
             "Web application promoting environmental awareness with a PHP backend and dynamic JavaScript frontend.",
         technologies: ["PHP", "HTML", "JavaScript"],
-        githubUrl: "https://github.com/zhongxuen/ecoquest",
+        githubUrl: "",
+        githubRepo: "EcoQuest-Web-Development",
         keyFeatures: [
             "PHP backend with file-based storage",
             "Dynamic frontend interactions",
@@ -50,7 +53,8 @@ export const projects: Project[] = [
         description:
             "CLI-based student management system with a menu-driven interface and CRUD operations using file storage.",
         technologies: ["Python", "File I/O"],
-        githubUrl: "https://github.com/zhongxuen/education-management-system",
+        githubUrl: "",
+        githubRepo: "Education-Management-System-Python",
         keyFeatures: [
             "Menu-driven CLI interface",
             "CRUD operations using file storage",
@@ -64,7 +68,7 @@ export const projects: Project[] = [
         description:
             "AI chatbot for travel assistance with structured conversational flows and intent handling.",
         technologies: ["Botpress"],
-        githubUrl: "https://github.com/zhongxuen/travel-expertise-ai-chatbot",
+        githubUrl: "",
         keyFeatures: [
             "Conversational flow design",
             "Intent handling",

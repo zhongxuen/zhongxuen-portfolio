@@ -4,10 +4,8 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ProjectCard } from "@/components/cards/ProjectCard";
 import { projects } from "@/data/projects";
 import { buildMetadata } from "@/lib/metadata";
-
-const sortedProjects = [...projects].sort(
-    (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity)
-);
+import { getPortfolioRepos } from "@/services/githubService";
+import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 
 export const metadata: Metadata = buildMetadata({
     title: "Projects",
@@ -15,7 +13,13 @@ export const metadata: Metadata = buildMetadata({
     path: "/projects",
 });
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+    const sortedProjects = [...enrichedProjects].sort(
+        (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity)
+    );
+
     return (
         <Container as="section" className="flex flex-col gap-10 py-16 md:py-24">
             <SectionHeading

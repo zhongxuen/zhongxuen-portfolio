@@ -16,13 +16,58 @@ import { GitHubRepo } from "@/lib/github";
  */
 function extractGitHubFields(
     repo: GitHubRepo
-): Pick<Project, "githubUrl" | "language" | "stars" | "lastUpdated"> {
+): Pick<Project, "githubUrl" | "liveUrl" | "language" | "stars" | "lastUpdated"> {
     return {
         githubUrl: repo.html_url,
+        liveUrl: repo.homepage?.trim() || undefined,
         language: repo.language ?? undefined,
         stars: repo.stargazers_count,
         lastUpdated: repo.pushed_at,
     };
+}
+
+function normalizeName(value: string): string {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function findMatchingRepo(project: Project, repos: GitHubRepo[]): GitHubRepo | undefined {
+    const explicitCandidates = [project.githubRepo]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .map(normalizeName);
+
+    const githubPathSegments = project.githubUrl.split("/").filter(Boolean);
+    const githubPathRepo = githubPathSegments.length >= 2 ? githubPathSegments[githubPathSegments.length - 1] : undefined;
+    const slugCandidate = normalizeName(project.slug);
+
+    const candidates = [
+        ...explicitCandidates,
+        ...(githubPathRepo ? [normalizeName(githubPathRepo)] : []),
+        ...(slugCandidate ? [slugCandidate] : []),
+    ].filter(Boolean);
+
+    if (candidates.length === 0) {
+        return undefined;
+    }
+
+    return repos.find((repo) => {
+        const normalizedRepoName = normalizeName(repo.name);
+        const normalizedFullName = normalizeName(repo.full_name);
+
+        return candidates.some((candidate) => {
+            if (!candidate) {
+                return false;
+            }
+
+            const repoMatchesCandidate =
+                normalizedRepoName === candidate ||
+                normalizedRepoName.includes(candidate) ||
+                normalizedFullName === candidate ||
+                normalizedFullName.includes(candidate) ||
+                candidate.includes(normalizedRepoName);
+
+            return repoMatchesCandidate && candidate !== "zhongxuen";
+        });
+    });
 }
 
 /**
@@ -38,27 +83,26 @@ export function mergeProjectWithRepo(
         return localProject;
     }
 
+    const githubFields = extractGitHubFields(repo);
+
     return {
         ...localProject,
-        ...extractGitHubFields(repo),
+        ...githubFields,
+        liveUrl: localProject.liveUrl || githubFields.liveUrl,
     };
 }
 
 /**
  * Merges an array of local projects with fetched GitHub repos, matching
- * by repo name embedded in the project's githubUrl (last path segment).
- * Projects with no matching repo are returned as-is (graceful degradation).
+ * by the project's configured repo name, its GitHub URL path, or a slug-based
+ * similarity check. Projects with no matching repo are returned as-is.
  */
 export function mergeProjectsWithRepos(
     localProjects: Project[],
     repos: GitHubRepo[]
 ): Project[] {
-    const repoByName = new Map(repos.map((repo) => [repo.name, repo]));
-
     return localProjects.map((project) => {
-        const repoName = project.githubUrl.split("/").filter(Boolean).pop();
-        const matchingRepo = repoName ? repoByName.get(repoName) : undefined;
-
+        const matchingRepo = findMatchingRepo(project, repos);
         return mergeProjectWithRepo(project, matchingRepo);
     });
 }

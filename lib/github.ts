@@ -29,6 +29,7 @@ export interface GitHubRepo {
     fork: boolean;
     archived: boolean;
     topics?: string[];
+    homepage: string | null;
 }
 
 function buildHeaders(): HeadersInit {

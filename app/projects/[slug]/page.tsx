@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { projects } from "@/data/projects";
 import { buildMetadata } from "@/lib/metadata";
 import { buildProjectStructuredData } from "@/lib/structuredData";
+import { getPortfolioRepos } from "@/services/githubService";
+import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 
 export function generateStaticParams() {
     return projects.map((project) => ({ slug: project.slug }));
@@ -43,7 +45,9 @@ export default async function ProjectDetailPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const project = projects.find((item) => item.slug === slug);
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+    const project = enrichedProjects.find((item) => item.slug === slug);
 
     if (!project) {
         notFound();
@@ -85,10 +89,12 @@ export default async function ProjectDetailPage({
                             </div>
 
                             <div className="flex flex-wrap gap-3">
-                                <Button href={project.githubUrl} external variant="primary">
-                                    <SiGithub size={16} />
-                                    View repository
-                                </Button>
+                                {project.githubUrl && (
+                                    <Button href={project.githubUrl} external variant="primary">
+                                        <SiGithub size={16} />
+                                        View repository
+                                    </Button>
+                                )}
                                 {project.liveUrl && (
                                     <Button href={project.liveUrl} external variant="outline">
                                         <ExternalLink size={16} />
@@ -110,17 +116,19 @@ export default async function ProjectDetailPage({
                                 A focused overview of the stack, delivery goals, and implementation scope for this project.
                             </CardDescription>
                             <ul className="space-y-3 text-sm text-muted">
-                                <li>
-                                    <span className="font-medium text-foreground">Repository:</span>{" "}
-                                    <a
-                                        href={project.githubUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary transition-colors hover:text-primary/80"
-                                    >
-                                        {project.githubUrl}
-                                    </a>
-                                </li>
+                                {project.githubUrl && (
+                                    <li>
+                                        <span className="font-medium text-foreground">Repository:</span>{" "}
+                                        <a
+                                            href={project.githubUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary transition-colors hover:text-primary/80"
+                                        >
+                                            {project.githubUrl}
+                                        </a>
+                                    </li>
+                                )}
                                 <li>
                                     <span className="font-medium text-foreground">Stack:</span>{" "}
                                     {project.technologies.join(", ")}

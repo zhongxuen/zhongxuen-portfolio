@@ -31,6 +31,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
         featured,
     } = project;
 
+    const hasGitHubLink = Boolean(githubUrl?.trim());
+    const hasLiveLink = Boolean(liveUrl?.trim());
+
     return (
         <Card interactive className="flex h-full flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
@@ -61,11 +64,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
             )}
 
             <div className="mt-auto flex gap-3 pt-2">
-                <Button href={githubUrl} variant="outline" size="sm">
-                    <SiGithub size={16} />
-                    Code
-                </Button>
-                {liveUrl && (
+                {hasGitHubLink && (
+                    <Button href={githubUrl} variant="outline" size="sm">
+                        <SiGithub size={16} />
+                        Code
+                    </Button>
+                )}
+                {hasLiveLink && (
                     <Button href={liveUrl} variant="primary" size="sm">
                         Live Demo
                         <ExternalLink size={16} />

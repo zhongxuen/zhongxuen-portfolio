@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { navigation } from "@/data/navigation";
 import { useScroll } from "@/hooks/useScroll";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 import { cn } from "@/lib/utils";
 import { Container } from "@/components/ui/Container";
 
@@ -17,9 +18,21 @@ import { Container } from "@/components/ui/Container";
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const { isScrolled } = useScroll();
+    const { scrollToSection } = useSmoothScroll();
 
     function closeMenu(): void {
         setIsOpen(false);
+    }
+
+    function handleNavClick(
+        e: React.MouseEvent<HTMLAnchorElement>,
+        href: string
+    ): void {
+        if (href.startsWith("#")) {
+            e.preventDefault();
+            scrollToSection(href);
+            closeMenu();
+        }
     }
 
     return (
@@ -45,6 +58,7 @@ export function Navbar() {
                         <Link
                             key={item.id}
                             href={item.href}
+                            onClick={(e) => handleNavClick(e, item.href)}
                             className="text-sm font-medium text-muted transition-colors hover:text-foreground"
                         >
                             {item.label}
@@ -70,7 +84,7 @@ export function Navbar() {
                             <Link
                                 key={item.id}
                                 href={item.href}
-                                onClick={closeMenu}
+                                onClick={(e) => handleNavClick(e, item.href)}
                                 className="rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-card hover:text-foreground"
                             >
                                 {item.label}

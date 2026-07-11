@@ -26,6 +26,9 @@ export interface Project {
     /** GitHub repository URL */
     githubUrl: string;
 
+    /** Optional GitHub repository name used for live repo matching */
+    githubRepo?: string;
+
     /** Live deployed URL, if available */
     liveUrl?: string;
 
