@@ -101,10 +101,23 @@ export function mergeProjectsWithRepos(
     localProjects: Project[],
     repos: GitHubRepo[]
 ): Project[] {
-    return localProjects.map((project) => {
+    const mergedProjects = localProjects.map((project) => {
         const matchingRepo = findMatchingRepo(project, repos);
         return mergeProjectWithRepo(project, matchingRepo);
     });
+
+    const matchedRepoNames = new Set(
+        localProjects
+            .map((project) => findMatchingRepo(project, repos))
+            .filter((repo): repo is GitHubRepo => Boolean(repo))
+            .map((repo) => repo.full_name)
+    );
+
+    const githubOnlyProjects = repos
+        .filter((repo) => !matchedRepoNames.has(repo.full_name))
+        .map((repo) => githubRepoToProject(repo));
+
+    return [...mergedProjects, ...githubOnlyProjects];
 }
 
 /**

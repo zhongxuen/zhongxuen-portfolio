@@ -12,8 +12,11 @@ import { buildProjectStructuredData } from "@/lib/structuredData";
 import { getPortfolioRepos } from "@/services/githubService";
 import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 
-export function generateStaticParams() {
-    return projects.map((project) => ({ slug: project.slug }));
+export async function generateStaticParams() {
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+
+    return enrichedProjects.map((project) => ({ slug: project.slug }));
 }
 
 export async function generateMetadata({
@@ -22,7 +25,9 @@ export async function generateMetadata({
     params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
     const { slug } = await params;
-    const project = projects.find((item) => item.slug === slug);
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+    const project = enrichedProjects.find((item) => item.slug === slug);
 
     if (!project) {
         return buildMetadata({
