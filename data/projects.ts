@@ -97,18 +97,23 @@ export const projects: Project[] = [
     },
 
     {
+        slug: "it-ticket-helpdesk-system",
         title: "IT Ticket Helpdesk System",
-        slug: "IT-ticket-helpdesk-system",
         description:
-            "A full-stack IT helpdesk and ticketing platform enabling employees to raise IT issues and technicians/admins to track, assign, and resolve tickets efficiently. Supports role-based access control with dedicated dashboards for Admin, Technician, IT staff, and Employee roles.",
+            "Full-stack IT helpdesk ticketing platform with role-based access for admins, technicians, IT staff, and employees to log, track, and resolve support tickets.",
+        longDescription:
+            "A role-based IT support ticketing system enabling employees to raise tickets, technicians and IT staff to manage and resolve them, and admins to oversee the full workflow. Includes authentication, ticket status tracking, and role-specific dashboards.\n\nTest accounts (password: `12345678` for all):\n- `admin`\n- `technician`\n- `it`\n- `employee`",
+        technologies: ["TypeScript", "Next.js", "Supabase"],
         githubUrl: "https://github.com/zhongxuen/IT-ticket-helpdesk-system",
-        liveUrl: "https://zhongxuen-portfolio.vercel.app/projects/IT-ticket-helpdesk-system",
-        technologies: ["TypeScript", "Next.js", "Supabase", "Tailwind CSS"],
-        testCredentials: [
-            { role: "Admin", username: "admin", password: "12345678" },
-            { role: "Technician", username: "technician", password: "12345678" },
-            { role: "IT", username: "it", password: "12345678" },
-            { role: "Employee", username: "employee", password: "12345678" },
+        githubRepo: "IT-ticket-helpdesk-system",
+        liveUrl: "https://it-ticket-helpdesk-system.vercel.app/",
+        keyFeatures: [
+            "Role-based access control (Admin, Technician, IT, Employee)",
+            "Ticket creation, assignment, and status tracking",
+            "Authentication with test accounts per role",
+            "Role-specific dashboards",
         ],
+        featured: true,
+        order: 7,
     },
 ];
