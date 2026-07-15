@@ -64,3 +64,19 @@ export interface Project {
     /** ISO timestamp of last repository update */
     lastUpdated?: string;
 }
+
+export interface TestCredential {
+        role: string;
+        username: string;
+        password: string;
+    }
+
+    export interface Project {
+        title: string;
+        slug: string;
+        description: string;
+        githubUrl: string;
+        liveUrl?: string;
+        technologies: string[];
+        testCredentials?: TestCredential[];
+    }

@@ -95,4 +95,20 @@ export const projects: Project[] = [
         featured: false,
         order: 6,
     },
+
+    {
+        title: "IT Ticket Helpdesk System",
+        slug: "IT-ticket-helpdesk-system",
+        description:
+            "A full-stack IT helpdesk and ticketing platform enabling employees to raise IT issues and technicians/admins to track, assign, and resolve tickets efficiently. Supports role-based access control with dedicated dashboards for Admin, Technician, IT staff, and Employee roles.",
+        githubUrl: "https://github.com/zhongxuen/IT-ticket-helpdesk-system",
+        liveUrl: "https://zhongxuen-portfolio.vercel.app/projects/IT-ticket-helpdesk-system",
+        technologies: ["TypeScript", "Next.js", "Supabase", "Tailwind CSS"],
+        testCredentials: [
+            { role: "Admin", username: "admin", password: "12345678" },
+            { role: "Technician", username: "technician", password: "12345678" },
+            { role: "IT", username: "it", password: "12345678" },
+            { role: "Employee", username: "employee", password: "12345678" },
+        ],
+    },
 ];
