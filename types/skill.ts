@@ -18,7 +18,7 @@ export type SkillCategory =
     | "Databases"
     | "Frameworks"
     | "Developer Tools"
-    | "Cloud & Deployment"
+    | "Networking & Cloud"
     | "Other Technologies";
 
 export interface Skill {

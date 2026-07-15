@@ -128,7 +128,7 @@ export const skills: Skill[] = [
     {
         id: "cisco-packet-tracer",
         name: "Cisco Packet Tracer",
-        category: "Cloud & Deployment",
+        category: "Networking & Cloud",
         icon: "cisco",
     },
 
