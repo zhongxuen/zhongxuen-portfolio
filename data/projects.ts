@@ -9,6 +9,7 @@ export const projects: Project[] = [
         technologies: ["TypeScript", "Supabase"],
         githubUrl: "",
         githubRepo: "JobNow-Application-Capstone-Project",
+        liveUrl: "https://job-now-navy.vercel.app/",
         keyFeatures: [
             "Authentication",
             "Real-time database queries",
