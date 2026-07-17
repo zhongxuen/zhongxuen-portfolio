@@ -25,19 +25,19 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - Optimized performance with Next.js features
 
 ## Project Structure
-├── app/ # Next.js app router pages
-├── components/ # Reusable UI components
-│ ├── cards/ # Card-based components
-│ ├── forms/ # Form components
-│ ├── layout/ # Layout components (Navbar, Footer)
-│ ├── sections/ # Page section components
-│ └── ui/ # Base UI components
-├── data/ # Static content data
-├── hooks/ # Custom React hooks
-├── lib/ # Utility functions
-├── public/ # Static assets (images, resume)
-├── services/ # External service integrations
-└── types/ # TypeScript type definitions
+├── app/                  # Next.js app router pages
+├── components/           # Reusable UI components
+│   ├── cards/           # Card-based components
+│   ├── forms/           # Form components
+│   ├── layout/          # Layout components (Navbar, Footer)
+│   ├── sections/        # Page section components
+│   └── ui/              # Base UI components
+├── data/                 # Static content data
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility functions
+├── public/               # Static assets (images, resume)
+├── services/             # External service integrations
+└── types/                # TypeScript type definitions
 
 
 ## Key Integrations
