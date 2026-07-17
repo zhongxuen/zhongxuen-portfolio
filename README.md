@@ -25,6 +25,7 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - Optimized performance with Next.js features
 
 ## Project Structure
+app/
 ├── app/                  # Next.js app router pages
 ├── components/           # Reusable UI components
 │   ├── cards/           # Card-based components
