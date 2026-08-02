@@ -10,6 +10,7 @@ export const projects: Project[] = [
         githubUrl: "",
         githubRepo: "JobNow-Application-Capstone-Project",
         liveUrl: "https://job-now-navy.vercel.app/",
+        screenshots: ["/images/projects/jobnow-landing.jpg"],
         keyFeatures: [
             "Swipe-based job browsing",
             "AI-powered job matching",

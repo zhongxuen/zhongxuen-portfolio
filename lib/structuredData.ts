@@ -16,7 +16,9 @@ export function buildProjectStructuredData(project: Project) {
             sameAs: [AUTHOR.github, AUTHOR.linkedin],
         },
         url: `${SITE_URL}/projects/${project.slug}`,
-        image: `${SITE_URL}${project.screenshots?.[0] ?? "/og/default.png"}`,
+        image: project.screenshots?.[0]
+            ? `${SITE_URL}${project.screenshots[0]}`
+            : `${SITE_URL}/projects/${project.slug}/opengraph-image`,
         keywords: project.technologies.join(", "),
         about: SITE_DESCRIPTION,
     };

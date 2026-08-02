@@ -67,7 +67,11 @@ export default async function ProjectDetailPage({
     }
 
     const heroDescription = project.longDescription ?? project.description;
-    const featuredImage = project.screenshots?.[0] ?? "/og/default.png";
+    const featuredImage = project.screenshots?.[0];
+    const hasImplementationNotes =
+        (project.challenges && project.challenges.length > 0) ||
+        (project.lessonsLearned && project.lessonsLearned.length > 0);
+    const hasFutureImprovements = project.futureImprovements && project.futureImprovements.length > 0;
 
     const enrichedProjects = await getEnrichedProjects();
     const relatedProjects = enrichedProjects
@@ -198,7 +202,9 @@ export default async function ProjectDetailPage({
                     </div>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+                <div
+                    className={`grid gap-6 ${hasImplementationNotes ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-1"}`}
+                >
                     <Card className="space-y-4">
                         <CardTitle>What I built</CardTitle>
                         <CardDescription>
@@ -211,65 +217,75 @@ export default async function ProjectDetailPage({
                         </ul>
                     </Card>
 
-                    <Card className="space-y-4">
-                        <CardTitle>Implementation notes</CardTitle>
-                        <CardDescription>
-                            A brief look at the constraints, trade-offs, and lessons that shaped the build.
-                        </CardDescription>
-                        <div className="space-y-4 text-sm text-muted">
-                            {project.challenges && project.challenges.length > 0 && (
-                                <div>
-                                    <h3 className="mb-2 font-medium text-foreground">Challenges</h3>
-                                    <ul className="list-disc space-y-1 pl-5">
-                                        {project.challenges.map((challenge) => (
-                                            <li key={challenge}>{challenge}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {project.lessonsLearned && project.lessonsLearned.length > 0 && (
-                                <div>
-                                    <h3 className="mb-2 font-medium text-foreground">Lessons learned</h3>
-                                    <ul className="list-disc space-y-1 pl-5">
-                                        {project.lessonsLearned.map((lesson) => (
-                                            <li key={lesson}>{lesson}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
+                    {hasImplementationNotes && (
+                        <Card className="space-y-4">
+                            <CardTitle>Implementation notes</CardTitle>
+                            <CardDescription>
+                                A brief look at the constraints, trade-offs, and lessons that shaped the build.
+                            </CardDescription>
+                            <div className="space-y-4 text-sm text-muted">
+                                {project.challenges && project.challenges.length > 0 && (
+                                    <div>
+                                        <h3 className="mb-2 font-medium text-foreground">Challenges</h3>
+                                        <ul className="list-disc space-y-1 pl-5">
+                                            {project.challenges.map((challenge) => (
+                                                <li key={challenge}>{challenge}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {project.lessonsLearned && project.lessonsLearned.length > 0 && (
+                                    <div>
+                                        <h3 className="mb-2 font-medium text-foreground">Lessons learned</h3>
+                                        <ul className="list-disc space-y-1 pl-5">
+                                            {project.lessonsLearned.map((lesson) => (
+                                                <li key={lesson}>{lesson}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    )}
                 </div>
 
-                <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-                    <Card className="space-y-4">
-                        <CardTitle>Project visuals</CardTitle>
-                        <CardDescription>
-                            A lightweight preview surface for the work until additional screenshots are added to the project data.
-                        </CardDescription>
-                        <div className="relative h-64 w-full overflow-hidden rounded-lg border border-muted/10">
-                            <Image
-                                src={featuredImage}
-                                alt={`${project.title} interface showing ${project.technologies.join(", ")}`}
-                                fill
-                                className="object-cover"
-                                sizes="(min-width: 1024px) 50vw, 100vw"
-                            />
-                        </div>
-                    </Card>
+                {(featuredImage || hasFutureImprovements) && (
+                    <div
+                        className={`mt-8 grid gap-6 ${featuredImage && hasFutureImprovements ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-1"}`}
+                    >
+                        {featuredImage && (
+                            <Card className="space-y-4">
+                                <CardTitle>Project visuals</CardTitle>
+                                <CardDescription>
+                                    A preview of the interface for this project.
+                                </CardDescription>
+                                <div className="relative h-64 w-full overflow-hidden rounded-lg border border-muted/10">
+                                    <Image
+                                        src={featuredImage}
+                                        alt={`${project.title} interface showing ${project.technologies.join(", ")}`}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(min-width: 1024px) 50vw, 100vw"
+                                    />
+                                </div>
+                            </Card>
+                        )}
 
-                    <Card className="space-y-4">
-                        <CardTitle>Future direction</CardTitle>
-                        <CardDescription>
-                            Potential improvements or extensions that could expand this project further.
-                        </CardDescription>
-                        <ul className="list-disc space-y-2 pl-5 text-sm text-muted">
-                            {project.futureImprovements?.map((item) => (
-                                <li key={item}>{item}</li>
-                            ))}
-                        </ul>
-                    </Card>
-                </div>
+                        {hasFutureImprovements && (
+                            <Card className="space-y-4">
+                                <CardTitle>Future direction</CardTitle>
+                                <CardDescription>
+                                    Potential improvements or extensions that could expand this project further.
+                                </CardDescription>
+                                <ul className="list-disc space-y-2 pl-5 text-sm text-muted">
+                                    {project.futureImprovements?.map((item) => (
+                                        <li key={item}>{item}</li>
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
+                    </div>
+                )}
 
                 {relatedProjects.length > 0 && (
                     <div className="mt-8">
