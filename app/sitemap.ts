@@ -8,6 +8,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const repos = await getPortfolioRepos();
     const enrichedProjects = mergeProjectsWithRepos(projects, repos);
 
+    // mergeProjectsWithRepos appends GitHub-only entries for repos with no
+    // matching local project (see adapters/githubProjectAdapter.ts). Those
+    // have no narrative content, so keep them out of the sitemap.
+    const localSlugs = new Set(projects.map((project) => project.slug));
+    const sitemapProjects = enrichedProjects.filter((project) =>
+        localSlugs.has(project.slug)
+    );
+
     return [
         {
             url: SITE_URL,
@@ -21,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: "monthly",
             priority: 0.8,
         },
-        ...enrichedProjects.map((project) => ({
+        ...sitemapProjects.map((project) => ({
             url: `${SITE_URL}/projects/${project.slug}`,
             // Real GitHub `pushed_at` when available, falling back to the
             // manually-bumped site constant rather than `new Date()` (which

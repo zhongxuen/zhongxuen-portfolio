@@ -50,3 +50,5 @@ docs/ADMIN.md
 compile-progress.ps1
 progress.md
 project-tree.txt
+.vercel
+.env*
