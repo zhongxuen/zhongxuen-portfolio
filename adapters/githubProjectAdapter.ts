@@ -101,14 +101,14 @@ export function mergeProjectsWithRepos(
     localProjects: Project[],
     repos: GitHubRepo[]
 ): Project[] {
-    const mergedProjects = localProjects.map((project) => {
-        const matchingRepo = findMatchingRepo(project, repos);
-        return mergeProjectWithRepo(project, matchingRepo);
-    });
+    const matchingRepos = localProjects.map((project) => findMatchingRepo(project, repos));
+
+    const mergedProjects = localProjects.map((project, index) =>
+        mergeProjectWithRepo(project, matchingRepos[index])
+    );
 
     const matchedRepoNames = new Set(
-        localProjects
-            .map((project) => findMatchingRepo(project, repos))
+        matchingRepos
             .filter((repo): repo is GitHubRepo => Boolean(repo))
             .map((repo) => repo.full_name)
     );

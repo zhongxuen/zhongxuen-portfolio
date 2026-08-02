@@ -20,6 +20,12 @@ export interface Project {
     /** Longer-form explanation for the project detail page, if different from description */
     longDescription?: string;
 
+    /** Structured login credentials for trying out a live demo (rendered as a list, not embedded in prose) */
+    testCredentials?: {
+        password: string;
+        accounts: string[];
+    };
+
     /** Technologies/stack used (e.g. ["Next.js", "TypeScript", "Tailwind CSS"]) */
     technologies: string[];
 
@@ -64,19 +70,3 @@ export interface Project {
     /** ISO timestamp of last repository update */
     lastUpdated?: string;
 }
-
-export interface TestCredential {
-        role: string;
-        username: string;
-        password: string;
-    }
-
-    export interface Project {
-        title: string;
-        slug: string;
-        description: string;
-        githubUrl: string;
-        liveUrl?: string;
-        technologies: string[];
-        testCredentials?: TestCredential[];
-    }

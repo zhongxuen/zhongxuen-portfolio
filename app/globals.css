@@ -14,21 +14,6 @@ html {
     --success: #10B981;
 }
 
-/*
- * Placeholder light-theme values. master_prompt.md only defines the dark
- * palette; this exists so useTheme.ts's ".light" class has an effect if
- * a toggle is ever wired up. Revisit before shipping a real light mode.
- */
-.light {
-    --background: #F8FAFC;
-    --card: #FFFFFF;
-    --primary: #3B82F6;
-    --secondary: #0EA5E9;
-    --foreground: #0F172A;
-    --muted: #64748B;
-    --success: #059669;
-}
-
 @theme inline {
     --color-background: var(--background);
     --color-card: var(--card);

@@ -2,6 +2,25 @@ import { Experience } from "@/types/experience";
 
 export const experience: Experience[] = [
     {
+        id: "ted-optimus-frontend-intern-2026",
+        role: "Frontend Web Developer Intern",
+        company: "TED Optimus Sdn Bhd",
+        location: "Taman Maluri, Cheras, Kuala Lumpur, Malaysia",
+        employmentType: "Internship",
+        startDate: "2026-07-20",
+        endDate: "2026-10-23",
+        description:
+            "Frontend Web Developer intern building user-facing features and reusable components, working hybrid.",
+        responsibilities: [
+            "Develop new user-facing features",
+            "Build reusable code and libraries for future use",
+            "Ensure the technical feasibility of UI/UX designs",
+            "Optimize application for speed and scalability",
+            "Assist with various ad hoc tasks as needed",
+        ],
+        featured: true,
+    },
+    {
         id: "tuition-teacher-2024",
         role: "Part-Time Tuition Teacher",
         company: "Little Master Education Holdings",

@@ -1,44 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ProjectCard } from "@/components/cards/ProjectCard";
-import { projects as localProjects } from "@/data/projects";
 import { fadeInUp, staggerContainer, defaultViewport } from "@/lib/animations";
-import { getPortfolioRepos } from "@/services/githubService";
-import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 import type { Project } from "@/types/project";
 
-const sortedProjects = [...localProjects].sort(
-    (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity)
-);
+interface ProjectsSectionProps {
+    projects: Project[];
+}
 
-export function ProjectsSection() {
-    const [projects, setProjects] = useState<Project[]>(sortedProjects);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        async function enrichProjectsWithGitHub() {
-            try {
-                const repos = await getPortfolioRepos();
-                if (isMounted) {
-                    setProjects(mergeProjectsWithRepos(sortedProjects, repos));
-                }
-            } catch (error) {
-                console.error("Failed to fetch GitHub repos:", error);
-                // sortedProjects (local) is already the current state — no fallback needed
-            }
-        }
-
-        enrichProjectsWithGitHub();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
+export function ProjectsSection({ projects }: ProjectsSectionProps) {
     return (
         <Container as="section" id="projects" className="flex flex-col gap-10 py-20 md:py-28">
             <SectionHeading

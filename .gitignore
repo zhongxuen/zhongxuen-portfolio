@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+desktop.ini
+
+# python virtualenv
+.venv
 
 # debug
 npm-debug.log*

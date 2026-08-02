@@ -6,10 +6,9 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ExperienceCard } from "@/components/cards/ExperienceCard";
 import { experience } from "@/data/experience";
 import { fadeInUp, staggerContainer, defaultViewport } from "@/lib/animations";
+import { sortByStartDateDesc } from "@/lib/utils";
 
-const sortedExperience = [...experience].sort(
-    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-);
+const sortedExperience = sortByStartDateDesc(experience);
 
 export function ExperienceSection() {
     return (

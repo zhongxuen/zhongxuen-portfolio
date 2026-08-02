@@ -6,10 +6,9 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EducationCard } from "@/components/cards/EducationCard";
 import { education } from "@/data/education";
 import { fadeInUp, staggerContainer, defaultViewport } from "@/lib/animations";
+import { sortByStartDateDesc } from "@/lib/utils";
 
-const sortedEducation = [...education].sort(
-    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-);
+const sortedEducation = sortByStartDateDesc(education);
 
 export function EducationSection() {
     return (

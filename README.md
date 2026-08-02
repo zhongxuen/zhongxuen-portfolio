@@ -12,7 +12,7 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **Animations:** Framer Motion
-- **Icon Library:** Lucide React
+- **Icon Library:** Lucide React (UI icons) + Simple Icons via `@icons-pack/react-simple-icons` (brand/tech logos)
 - **Deployment:** Vercel / Netlify
 
 ## Features
@@ -20,30 +20,33 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - Fully responsive design for all device sizes
 - Smooth scroll navigation with active section highlighting
 - Animated UI elements with Framer Motion
-- Dynamic project pages with slug-based routing
+- Dynamic project detail pages with slug-based routing, loading, and not-found states
+- Per-project structured data (JSON-LD), Open Graph metadata, `robots.txt`, and `sitemap.xml` for SEO
 - Contact form integration
 - Optimized performance with Next.js features
 
 ## Project Structure
-app/
-├── app/                  # Next.js app router pages
-├── components/           # Reusable UI components
-│   ├── cards/           # Card-based components
-│   ├── forms/           # Form components
-│   ├── layout/          # Layout components (Navbar, Footer)
-│   ├── sections/        # Page section components
-│   └── ui/              # Base UI components
-├── data/                 # Static content data
-├── hooks/                # Custom React hooks
-├── lib/                  # Utility functions
-├── public/               # Static assets (images, resume)
-├── services/             # External service integrations
-└── types/                # TypeScript type definitions
-
+```
+├── adapters/              # Maps external data (e.g. GitHub) into internal types
+├── app/                   # Next.js app router pages
+│   └── projects/[slug]/  # Dynamic project detail routes
+├── components/            # Reusable UI components
+│   ├── cards/             # Card-based components
+│   ├── forms/             # Form components
+│   ├── layout/            # Layout components (Navbar, Footer)
+│   ├── sections/          # Page section components
+│   └── ui/                # Base UI components
+├── data/                  # Static content data
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utility functions, metadata, structured data
+├── public/                # Static assets (images, resume)
+├── services/               # External service integrations (GitHub)
+└── types/                 # TypeScript type definitions
+```
 
 ## Key Integrations
 
-- **GitHub API:** Fetches real-time repository data for the projects section
+- **GitHub API:** Fetches real-time repository data for the projects section via `services/githubService.ts` and `adapters/githubProjectAdapter.ts`
 - **Contact Form:** Handles form submissions (configurable backend)
 
 ## Getting Started
@@ -57,3 +60,4 @@ npm run dev
 
 # Build for production
 npm run build
+```

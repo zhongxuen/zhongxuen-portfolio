@@ -52,20 +52,36 @@ function buildHeaders(): HeadersInit {
  */
 export async function fetchUserRepos(username: string): Promise<GitHubRepo[]> {
     try {
-        const response = await fetch(
-            `${GITHUB_API_BASE}/users/${username}/repos?per_page=100&sort=updated`,
-            {
-                headers: buildHeaders(),
-                next: { revalidate: 3600 }, // ISR: refresh at most once per hour
-            }
-        );
+        const repos: GitHubRepo[] = [];
+        let page = 1;
 
-        if (!response.ok) {
-            console.error(`GitHub API error: ${response.status} ${response.statusText}`);
-            return [];
+        // Paginate past GitHub's 100-per-page cap so accounts with >100 repos
+        // aren't silently truncated.
+        while (true) {
+            const response = await fetch(
+                `${GITHUB_API_BASE}/users/${username}/repos?per_page=100&page=${page}&sort=updated`,
+                {
+                    headers: buildHeaders(),
+                    next: { revalidate: 3600 }, // ISR: refresh at most once per hour
+                }
+            );
+
+            if (!response.ok) {
+                console.error(`GitHub API error: ${response.status} ${response.statusText}`);
+                return page === 1 ? [] : repos;
+            }
+
+            const batch = (await response.json()) as GitHubRepo[];
+            repos.push(...batch);
+
+            if (batch.length < 100) {
+                break;
+            }
+
+            page += 1;
         }
 
-        return (await response.json()) as GitHubRepo[];
+        return repos;
     } catch (error) {
         console.error("Failed to fetch GitHub repos:", error);
         return [];

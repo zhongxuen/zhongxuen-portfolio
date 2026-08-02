@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { navigation } from "@/data/navigation";
 import { useScroll } from "@/hooks/useScroll";
@@ -19,18 +20,26 @@ export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const { isScrolled } = useScroll();
     const { scrollToSection } = useSmoothScroll();
+    const pathname = usePathname();
+    const isHome = pathname === "/";
 
     function closeMenu(): void {
         setIsOpen(false);
+    }
+
+    function resolveHref(href: string): string {
+        return href.startsWith("#") && !isHome ? `/${href}` : href;
     }
 
     function handleNavClick(
         e: React.MouseEvent<HTMLAnchorElement>,
         href: string
     ): void {
-        if (href.startsWith("#")) {
+        if (href.startsWith("#") && isHome) {
             e.preventDefault();
             scrollToSection(href);
+            closeMenu();
+        } else {
             closeMenu();
         }
     }
@@ -57,7 +66,7 @@ export function Navbar() {
                     {navigation.map((item) => (
                         <Link
                             key={item.id}
-                            href={item.href}
+                            href={resolveHref(item.href)}
                             onClick={(e) => handleNavClick(e, item.href)}
                             className="text-sm font-medium text-muted transition-colors hover:text-foreground"
                         >
@@ -83,7 +92,7 @@ export function Navbar() {
                         {navigation.map((item) => (
                             <Link
                                 key={item.id}
-                                href={item.href}
+                                href={resolveHref(item.href)}
                                 onClick={(e) => handleNavClick(e, item.href)}
                                 className="rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-card hover:text-foreground"
                             >

@@ -76,3 +76,13 @@ export function truncate(text: string, maxLength: number): string {
 
     return `${text.slice(0, maxLength).trimEnd()}…`;
 }
+
+/**
+ * Sorts entries with a startDate by most recent first. Used by
+ * Experience and Education sections to order timeline entries.
+ */
+export function sortByStartDateDesc<T extends { startDate: string }>(entries: T[]): T[] {
+    return [...entries].sort(
+        (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+}

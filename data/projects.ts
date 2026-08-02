@@ -40,7 +40,11 @@ export const projects: Project[] = [
         description:
             "Full-stack IT helpdesk ticketing platform with role-based access for admins, technicians, IT staff, and employees to log, track, and resolve support tickets.",
         longDescription:
-            "A role-based IT support ticketing system enabling employees to raise tickets, technicians and IT staff to manage and resolve them, and admins to oversee the full workflow. Includes authentication, ticket status tracking, and role-specific dashboards.\n\nTest accounts (password: `12345678` for all):\n- `admin`\n- `technician`\n- `it`\n- `employee`",
+            "A role-based IT support ticketing system enabling employees to raise tickets, technicians and IT staff to manage and resolve them, and admins to oversee the full workflow. Includes authentication, ticket status tracking, and role-specific dashboards.",
+        testCredentials: {
+            password: "12345678",
+            accounts: ["admin", "technician", "it", "employee"],
+        },
         technologies: ["TypeScript", "Next.js", "Supabase"],
         githubUrl: "https://github.com/zhongxuen/IT-ticket-helpdesk-system",
         githubRepo: "IT-ticket-helpdesk-system",

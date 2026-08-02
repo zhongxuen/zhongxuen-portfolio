@@ -6,7 +6,6 @@ export const education: Education[] = [
         degree: "Diploma in Information & Communication Technology (Software Engineering)",
         institution: "Asia Pacific University (APU)",
         institutionUrl: "https://www.apu.edu.my",
-        logo: "/images/logos/apu.png",
         location: "Kuala Lumpur, Malaysia",
         startDate: "2024-01-01",
         endDate: "Present",

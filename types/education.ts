@@ -19,9 +19,6 @@ export interface Education {
     /** Institution website URL, if available */
     institutionUrl?: string;
 
-    /** Path to institution logo in public/images/logos */
-    logo?: string;
-
     /** Location, e.g. "Boston, MA" */
     location?: string;
 

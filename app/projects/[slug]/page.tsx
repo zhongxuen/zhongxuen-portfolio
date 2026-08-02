@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
@@ -11,6 +13,12 @@ import { buildMetadata } from "@/lib/metadata";
 import { buildProjectStructuredData } from "@/lib/structuredData";
 import { getPortfolioRepos } from "@/services/githubService";
 import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
+
+const getEnrichedProjectBySlug = cache(async (slug: string) => {
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+    return enrichedProjects.find((item) => item.slug === slug);
+});
 
 export async function generateStaticParams() {
     const repos = await getPortfolioRepos();
@@ -25,9 +33,7 @@ export async function generateMetadata({
     params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
     const { slug } = await params;
-    const repos = await getPortfolioRepos();
-    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
-    const project = enrichedProjects.find((item) => item.slug === slug);
+    const project = await getEnrichedProjectBySlug(slug);
 
     if (!project) {
         return buildMetadata({
@@ -50,9 +56,7 @@ export default async function ProjectDetailPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const repos = await getPortfolioRepos();
-    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
-    const project = enrichedProjects.find((item) => item.slug === slug);
+    const project = await getEnrichedProjectBySlug(slug);
 
     if (!project) {
         notFound();
@@ -92,6 +96,27 @@ export default async function ProjectDetailPage({
                                     {heroDescription}
                                 </p>
                             </div>
+
+                            {project.testCredentials && (
+                                <div className="max-w-3xl rounded-lg border border-muted/10 bg-muted/5 p-4 text-sm text-muted">
+                                    <p className="mb-2 font-medium text-foreground">
+                                        Test accounts (password:{" "}
+                                        <code className="rounded bg-muted/10 px-1 py-0.5 text-foreground">
+                                            {project.testCredentials.password}
+                                        </code>{" "}
+                                        for all):
+                                    </p>
+                                    <ul className="list-disc space-y-1 pl-5">
+                                        {project.testCredentials.accounts.map((account) => (
+                                            <li key={account}>
+                                                <code className="rounded bg-muted/10 px-1 py-0.5 text-foreground">
+                                                    {account}
+                                                </code>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             <div className="flex flex-wrap gap-3">
                                 {project.githubUrl && (
@@ -196,11 +221,15 @@ export default async function ProjectDetailPage({
                         <CardDescription>
                             A lightweight preview surface for the work until additional screenshots are added to the project data.
                         </CardDescription>
-                        <img
-                            src={featuredImage}
-                            alt={`Preview for ${project.title}`}
-                            className="h-64 w-full rounded-lg border border-muted/10 object-cover"
-                        />
+                        <div className="relative h-64 w-full overflow-hidden rounded-lg border border-muted/10">
+                            <Image
+                                src={featuredImage}
+                                alt={`Preview for ${project.title}`}
+                                fill
+                                className="object-cover"
+                                sizes="(min-width: 1024px) 50vw, 100vw"
+                            />
+                        </div>
                     </Card>
 
                     <Card className="space-y-4">
