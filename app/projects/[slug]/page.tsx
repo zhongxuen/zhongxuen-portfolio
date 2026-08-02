@@ -8,22 +8,26 @@ import { Container } from "@/components/ui/Container";
 import { Card, CardDescription, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ProjectCard } from "@/components/cards/ProjectCard";
 import { projects } from "@/data/projects";
 import { buildMetadata } from "@/lib/metadata";
-import { buildProjectStructuredData } from "@/lib/structuredData";
+import { buildProjectStructuredData, buildBreadcrumbStructuredData } from "@/lib/structuredData";
+import { SITE_URL } from "@/lib/constants";
 import { getPortfolioRepos } from "@/services/githubService";
 import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 
-const getEnrichedProjectBySlug = cache(async (slug: string) => {
+const getEnrichedProjects = cache(async () => {
     const repos = await getPortfolioRepos();
-    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+    return mergeProjectsWithRepos(projects, repos);
+});
+
+const getEnrichedProjectBySlug = cache(async (slug: string) => {
+    const enrichedProjects = await getEnrichedProjects();
     return enrichedProjects.find((item) => item.slug === slug);
 });
 
 export async function generateStaticParams() {
-    const repos = await getPortfolioRepos();
-    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
-
+    const enrichedProjects = await getEnrichedProjects();
     return enrichedProjects.map((project) => ({ slug: project.slug }));
 }
 
@@ -65,12 +69,34 @@ export default async function ProjectDetailPage({
     const heroDescription = project.longDescription ?? project.description;
     const featuredImage = project.screenshots?.[0] ?? "/og/default.png";
 
+    const enrichedProjects = await getEnrichedProjects();
+    const relatedProjects = enrichedProjects
+        .filter((item) => item.slug !== project.slug)
+        .sort((a, b) => {
+            const overlap = (item: typeof project) =>
+                item.technologies.filter((tech) => project.technologies.includes(tech)).length;
+            return overlap(b) - overlap(a);
+        })
+        .slice(0, 3);
+
+    const breadcrumbItems = [
+        { name: "Home", url: SITE_URL },
+        { name: "Projects", url: `${SITE_URL}/projects` },
+        { name: project.title, url: `${SITE_URL}/projects/${project.slug}` },
+    ];
+
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
                     __html: JSON.stringify(buildProjectStructuredData(project)),
+                }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify(buildBreadcrumbStructuredData(breadcrumbItems)),
                 }}
             />
 
@@ -224,7 +250,7 @@ export default async function ProjectDetailPage({
                         <div className="relative h-64 w-full overflow-hidden rounded-lg border border-muted/10">
                             <Image
                                 src={featuredImage}
-                                alt={`Preview for ${project.title}`}
+                                alt={`${project.title} interface showing ${project.technologies.join(", ")}`}
                                 fill
                                 className="object-cover"
                                 sizes="(min-width: 1024px) 50vw, 100vw"
@@ -244,6 +270,19 @@ export default async function ProjectDetailPage({
                         </ul>
                     </Card>
                 </div>
+
+                {relatedProjects.length > 0 && (
+                    <div className="mt-8">
+                        <h2 className="mb-6 font-heading text-2xl font-semibold text-foreground">
+                            Related projects
+                        </h2>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {relatedProjects.map((relatedProject) => (
+                                <ProjectCard key={relatedProject.slug} project={relatedProject} />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </Container>
         </>
     );

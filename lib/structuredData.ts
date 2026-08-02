@@ -16,7 +16,7 @@ export function buildProjectStructuredData(project: Project) {
             sameAs: [AUTHOR.github, AUTHOR.linkedin],
         },
         url: `${SITE_URL}/projects/${project.slug}`,
-        image: `${SITE_URL}/og/default.png`,
+        image: `${SITE_URL}${project.screenshots?.[0] ?? "/og/default.png"}`,
         keywords: project.technologies.join(", "),
         about: SITE_DESCRIPTION,
     };
@@ -34,5 +34,38 @@ export function buildWebsiteStructuredData() {
             name: AUTHOR.name,
             url: SITE_URL,
         },
+    };
+}
+
+export function buildPersonStructuredData() {
+    return {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: AUTHOR.name,
+        url: SITE_URL,
+        jobTitle: AUTHOR.role,
+        address: {
+            "@type": "PostalAddress",
+            addressLocality: AUTHOR.location,
+        },
+        sameAs: [AUTHOR.github, AUTHOR.linkedin, AUTHOR.jobstreet],
+    };
+}
+
+export interface BreadcrumbItem {
+    name: string;
+    url: string;
+}
+
+export function buildBreadcrumbStructuredData(items: BreadcrumbItem[]) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: items.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            item: item.url,
+        })),
     };
 }

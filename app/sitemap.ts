@@ -1,26 +1,34 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/constants";
+import { SITE_URL, SITE_LAST_MODIFIED } from "@/lib/constants";
 import { projects } from "@/data/projects";
+import { getPortfolioRepos } from "@/services/githubService";
+import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+    const repos = await getPortfolioRepos();
+    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
+
     return [
         {
             url: SITE_URL,
-            lastModified: new Date(),
+            lastModified: SITE_LAST_MODIFIED,
             changeFrequency: "monthly",
             priority: 1,
         },
         {
             url: `${SITE_URL}/projects`,
-            lastModified: new Date(),
+            lastModified: SITE_LAST_MODIFIED,
             changeFrequency: "monthly",
             priority: 0.8,
         },
-        ...projects.map((project) => ({
+        ...enrichedProjects.map((project) => ({
             url: `${SITE_URL}/projects/${project.slug}`,
-            lastModified: new Date(),
+            // Real GitHub `pushed_at` when available, falling back to the
+            // manually-bumped site constant rather than `new Date()` (which
+            // would falsely signal "modified today" on every build).
+            lastModified: project.lastUpdated ?? SITE_LAST_MODIFIED,
             changeFrequency: "monthly" as const,
-            priority: 0.6,
+            priority: project.featured ? 0.7 : 0.5,
         })),
     ];
 }

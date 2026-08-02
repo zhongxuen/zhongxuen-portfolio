@@ -1,4 +1,7 @@
+import { Analytics } from "@vercel/analytics/next";
 import { buildMetadata } from "@/lib/metadata";
+import { buildWebsiteStructuredData, buildPersonStructuredData } from "@/lib/structuredData";
+import { HOME_META_DESCRIPTION } from "@/lib/constants";
 import { Poppins, Inter, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -21,7 +24,10 @@ const jetbrainsMono = JetBrains_Mono({
     weight: ["400", "500", "700"],
 });
 
-export const metadata = buildMetadata({ isHome: true });
+export const metadata = buildMetadata({
+    isHome: true,
+    description: HOME_META_DESCRIPTION,
+});
 
 export default function RootLayout({
     children,
@@ -34,9 +40,22 @@ export default function RootLayout({
             className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
         >
             <body className="min-h-full flex flex-col bg-background text-foreground">
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify(buildWebsiteStructuredData()),
+                    }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify(buildPersonStructuredData()),
+                    }}
+                />
                 <Navbar />
                 <main className="flex-1 pt-16">{children}</main>
                 <Footer />
+                <Analytics />
             </body>
         </html>
     );

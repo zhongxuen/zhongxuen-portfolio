@@ -5,7 +5,7 @@ export const projects: Project[] = [
         slug: "jobnow",
         title: "JobNow – Job Listing Application",
         description:
-            "Full-stack job listing platform with a cloud backend, authentication, and real-time database queries.",
+            "A job listing platform with secure authentication and real-time search, built end-to-end with TypeScript and Supabase.",
         technologies: ["TypeScript", "Supabase"],
         githubUrl: "",
         githubRepo: "JobNow-Application-Capstone-Project",
@@ -22,7 +22,7 @@ export const projects: Project[] = [
         slug: "advanced-tutorial-centre-system",
         title: "Advanced Tutorial Centre System",
         description:
-            "Desktop application for managing tutorial centre operations using object-oriented design and file persistence.",
+            "A Java desktop app that manages tutorial centre operations end-to-end — student records, OOP design, and file-based persistence.",
         technologies: ["Java", "OOP", "File I/O"],
         githubUrl: "",
         githubRepo: "Advanced-Tution-Centre-Management-Java",
@@ -38,7 +38,7 @@ export const projects: Project[] = [
         slug: "it-ticket-helpdesk-system",
         title: "IT Ticket Helpdesk System",
         description:
-            "Full-stack IT helpdesk ticketing platform with role-based access for admins, technicians, IT staff, and employees to log, track, and resolve support tickets.",
+            "A role-based IT helpdesk platform — admins, technicians, IT staff, and employees log, track, and resolve support tickets end-to-end.",
         longDescription:
             "A role-based IT support ticketing system enabling employees to raise tickets, technicians and IT staff to manage and resolve them, and admins to oversee the full workflow. Includes authentication, ticket status tracking, and role-specific dashboards.",
         testCredentials: {
@@ -63,7 +63,7 @@ export const projects: Project[] = [
         slug: "ecoquest",
         title: "EcoQuest – Environmental Awareness Web App",
         description:
-            "Web application promoting environmental awareness with a PHP backend and dynamic JavaScript frontend.",
+            "An environmental-awareness web app with a PHP backend and a dynamic JavaScript frontend for interactive engagement.",
         technologies: ["PHP", "HTML", "JavaScript"],
         githubUrl: "",
         githubRepo: "EcoQuest-Web-Development",
@@ -78,7 +78,7 @@ export const projects: Project[] = [
         slug: "education-management-system",
         title: "Education Management System",
         description:
-            "CLI-based student management system with a menu-driven interface and CRUD operations using file storage.",
+            "A menu-driven Python CLI for managing student records, with full CRUD operations backed by file-based storage.",
         technologies: ["Python", "File I/O"],
         githubUrl: "",
         githubRepo: "Education-Management-System-Python",
@@ -93,7 +93,7 @@ export const projects: Project[] = [
         slug: "jommakan-website-interface",
         title: "JomMakan Website Interface",
         description:
-            "A static UI prototype for a restaurant management system (RMS), covering dashboard, POS, reservations, inventory, customer, staff, and promotions views. Built as a frontend-only interface without persistent database functionality.",
+            "A static restaurant-management UI covering dashboard, POS, reservations, inventory, staff, and promotions — frontend-only with a Firebase fallback.",
         technologies: ["HTML", "Tailwind CSS", "JavaScript"],
         githubUrl: "",
         githubRepo: "JomMakan-Website-Interface",
@@ -111,7 +111,7 @@ export const projects: Project[] = [
         slug: "travel-expertise-ai-chatbot",
         title: "Travel Expertise AI Chatbot",
         description:
-            "AI chatbot for travel assistance with structured conversational flows and intent handling.",
+            "A Botpress travel-assistant chatbot with structured conversation flows and intent handling for trip-planning queries.",
         technologies: ["Botpress"],
         githubUrl: "",
         keyFeatures: [
