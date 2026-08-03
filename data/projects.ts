@@ -63,6 +63,31 @@ export const projects: Project[] = [
     },
 
     {
+        slug: "grabexpress-receipt-collector",
+        title: "GrabExpress Receipt Collector",
+        description:
+            "A Next.js web app that signs in to Gmail, finds GrabExpress delivery receipt emails specifically, and exports them as a formatted .xlsx spreadsheet. Only handles GrabExpress receipts, not GrabFood, GrabCar, GrabMart, or other Grab services.",
+        longDescription:
+            "Web app, deployed on Vercel, that lets any Gmail user sign in with Google, finds GrabExpress receipt emails (identified by subject line, since GrabExpress receipts are often forwarded rather than sent directly), parses receipt data out of the email HTML with cheerio, and downloads the results as a formatted .xlsx file built in-memory with exceljs — no database, no local files, no OCR/PDF scraping. Scoped narrowly to GrabExpress delivery receipts only; it does not parse or collect receipts from other Grab verticals (GrabFood, GrabCar, GrabMart, etc.), since those use different email formats. A built-in Demo Mode lets visitors try the full parse → dedupe → export pipeline against bundled synthetic sample receipts, with no sign-in and no real Gmail access required, since the app requests a sensitive OAuth scope that's normally gated to approved test users.",
+        technologies: ["Next.js", "TypeScript", "NextAuth.js", "Gmail API", "cheerio", "exceljs"],
+        githubUrl: "https://github.com/zhongxuen/GrabExpress-Receipt-Collector",
+        githubRepo: "GrabExpress-Receipt-Collector",
+        liveUrl: "https://grab-express-receipt-collector-sigma.vercel.app/?demo=1",
+        keyFeatures: [
+            "Google sign-in (Gmail read-only scope) with session in an encrypted cookie, no database",
+            "Finds GrabExpress receipt emails specifically by subject line — excludes other Grab services (GrabFood, GrabCar, GrabMart, etc.)",
+            "Flexible date range selection: all time, since a date, a specific month, custom range, or free-form phrases like \"last 90 days\"",
+            "Parses receipt data (date, receipt/booking number, amount) from email HTML via cheerio with a regex fallback",
+            "Deduplicates receipts by Gmail message ID or booking code before export",
+            "Streams a formatted .xlsx file back as a direct browser download, built in-memory with exceljs",
+            "Skipped or failed messages are reported back in the UI, not just logged silently",
+            "Demo Mode: try the real parse/export pipeline on bundled sample data with no sign-in required, reachable via a \"Try the demo\" entry point or the /?demo=1 link, with a persistent banner marking demo output",
+        ],
+        featured: true,
+        order: 4,
+    },
+
+    {
         slug: "ecoquest",
         title: "EcoQuest – Environmental Awareness Web App",
         description:
@@ -77,7 +102,7 @@ export const projects: Project[] = [
             "PHP backend with a MySQL database",
         ],
         featured: true,
-        order: 4,
+        order: 5,
     },
     {
         slug: "education-management-system",
@@ -93,7 +118,7 @@ export const projects: Project[] = [
             "CRUD operations using file storage",
         ],
         featured: false,
-        order: 5,
+        order: 6,
     },
     {
         slug: "jommakan-website-interface",
@@ -111,7 +136,7 @@ export const projects: Project[] = [
             "Optional Firebase/Firestore integration scaffold with automatic fallback to mock data mode",
         ],
         featured: false,
-        order: 6,
+        order: 7,
     },
     {
         slug: "travel-expertise-ai-chatbot",
@@ -126,7 +151,7 @@ export const projects: Project[] = [
             "Structured dialogue system",
         ],
         featured: false,
-        order: 7,
+        order: 8,
     },
 
 ];
