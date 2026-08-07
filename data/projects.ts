@@ -21,6 +21,30 @@ export const projects: Project[] = [
         order: 1,
     },
     {
+        slug: "ai-code-visualizer",
+        title: "AI Code Visualizer",
+        description:
+            "A step-by-step code execution visualizer for JavaScript, TypeScript, Python, and Java — watch variables, call stack, memory, and control flow update live as code runs, plus a gallery of built-in algorithm visualizations.",
+        longDescription:
+            "A Next.js app that parses source code (via acorn, Babel, and tree-sitter language adapters) into an AST, then walks it to build a frame-by-frame execution timeline. A Monaco-based editor drives the whole flow: as you step through execution, synced panels show live variable state, call stack, scope, and memory, alongside a console output timeline, an interactive React Flow control-flow graph, and a time/space complexity badge. A separate Algorithms mode ships ready-made, steppable visualizations for common algorithms (BFS, DFS, binary search, bubble/insertion/selection sort, DP problems, tree traversal) without needing to write any code.",
+        technologies: ["Next.js", "TypeScript", "React", "Zustand", "React Flow", "Monaco Editor", "tree-sitter"],
+        githubUrl: "https://github.com/zhongxuen/ai-code-visualizer",
+        githubRepo: "ai-code-visualizer",
+        liveUrl: "https://ai-code-visualizer-one.vercel.app",
+        keyFeatures: [
+            "Monaco-based code editor supporting JavaScript, TypeScript, Python, and Java via pluggable language adapters",
+            "Custom parsing layer (acorn, Babel, tree-sitter) builds an AST per language",
+            "Step-by-step execution playback with synced variable, scope, call stack, and memory timelines",
+            "Live console output tracking alongside execution steps",
+            "Interactive control-flow graph visualization built with React Flow",
+            "Time/space complexity analysis with a Big-O badge",
+            "Built-in algorithm gallery (BFS, DFS, binary search, sorting, DP, tree traversal) with dedicated step-through visualizations",
+        ],
+        featured: true,
+        order: 2,
+    },
+
+    {
         slug: "advanced-tutorial-centre-system",
         title: "Advanced Tutorial Centre System",
         description:
@@ -34,7 +58,7 @@ export const projects: Project[] = [
             "File-based data persistence",
         ],
         featured: true,
-        order: 2,
+        order: 3,
     },
 
     {
@@ -59,7 +83,7 @@ export const projects: Project[] = [
             "Role-specific dashboards",
         ],
         featured: true,
-        order: 3,
+        order: 4,
     },
 
     {
@@ -84,7 +108,7 @@ export const projects: Project[] = [
             "Demo Mode: try the real parse/export pipeline on bundled sample data with no sign-in required, reachable via a \"Try the demo\" entry point or the /?demo=1 link, with a persistent banner marking demo output",
         ],
         featured: true,
-        order: 4,
+        order: 5,
     },
 
     {
@@ -102,7 +126,7 @@ export const projects: Project[] = [
             "PHP backend with a MySQL database",
         ],
         featured: true,
-        order: 5,
+        order: 6,
     },
     {
         slug: "education-management-system",
@@ -118,7 +142,7 @@ export const projects: Project[] = [
             "CRUD operations using file storage",
         ],
         featured: false,
-        order: 6,
+        order: 7,
     },
     {
         slug: "jommakan-website-interface",
@@ -136,7 +160,7 @@ export const projects: Project[] = [
             "Optional Firebase/Firestore integration scaffold with automatic fallback to mock data mode",
         ],
         featured: false,
-        order: 7,
+        order: 8,
     },
     {
         slug: "travel-expertise-ai-chatbot",
@@ -151,7 +175,7 @@ export const projects: Project[] = [
             "Structured dialogue system",
         ],
         featured: false,
-        order: 8,
+        order: 9,
     },
 
 ];

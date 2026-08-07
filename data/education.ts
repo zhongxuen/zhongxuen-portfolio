@@ -9,6 +9,7 @@ export const education: Education[] = [
         location: "Kuala Lumpur, Malaysia",
         startDate: "2024-01-01",
         endDate: "Present",
+        gpa: "3.72",
         relevantCourses: [
             "Programming Fundamentals",
             "UI/UX Design",
@@ -16,6 +17,7 @@ export const education: Education[] = [
             "Database Systems",
             "Software Engineering Principles",
         ],
+        honors: ["Distinction (Grade A) — Final CGPA 3.72 across 5 semesters"],
         description:
             "Expected graduation: 2026. Specializing in software engineering with a focus on full-stack development.",
         featured: true,
