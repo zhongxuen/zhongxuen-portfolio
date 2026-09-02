@@ -115,8 +115,16 @@ export function SkillsSection() {
                                 {categorySkills.map((skill, index) => (
                                     <div
                                         key={skill.id}
-                                        data-reveal="up"
+                                        data-reveal="pop"
                                         style={revealDelay(stagger(index))}
+                                        /*
+                                         * A tile is a third the width of a
+                                         * project card, so the trace is pulled
+                                         * in to match its 0.75rem padding —
+                                         * at the card default it would land
+                                         * past the glyph it points at.
+                                         */
+                                        className="bp-branch [--bp-branch-x:0.75rem]"
                                     >
                                         <SkillCard skill={skill} />
                                     </div>

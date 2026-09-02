@@ -47,7 +47,12 @@ export function ProjectsSection({ projects, totalCount }: ProjectsSectionProps) 
 
             <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project, index) => (
-                    <div key={project.slug} data-reveal="up" style={revealDelay(stagger(index))}>
+                    <div
+                        key={project.slug}
+                        data-reveal="pop"
+                        style={revealDelay(stagger(index))}
+                        className="bp-branch"
+                    >
                         <ProjectCard project={project} />
                     </div>
                 ))}

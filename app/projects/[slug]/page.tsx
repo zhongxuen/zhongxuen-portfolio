@@ -373,8 +373,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                                  */
                                 <div
                                     key={relatedProject.slug}
-                                    data-reveal="up"
+                                    data-reveal="pop"
                                     style={revealDelay(stagger(index))}
+                                    className="bp-branch"
                                 >
                                     <ProjectCard
                                         project={relatedProject}

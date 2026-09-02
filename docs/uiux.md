@@ -230,6 +230,9 @@ Added at the 2026-09-02 retier:
 | **Schematic ambience** | Packets travel down the hero schematic's connectors; a survey line passes down the drawing every nine seconds.                                                       |
 | **Timeline entry**     | Nodes enter from the side they land on, so the alternation reads as two columns filling in rather than one list sliding up.                                          |
 | **Filter results**     | `/projects` remounts on every filter change, so the results grid re-cascades — the feedback a filter should give.                                                    |
+| **Branch taps**        | A trace runs in along each plate's top edge and drops into its corner, wiring the plate to the section above it. Cards, skill tiles, certifications.                    |
+| **Plate landing**      | Grid plates enter on `pop` — further travel than `up`, on the one overshoot curve on the site, so they land rather than fade. Plates only, never type.                  |
+| **Callout leaders**    | Each numbered callout's hairline leader draws out of its number, 40ms behind the row it annotates.                                                                      |
 
 ### 3.4 Motion budget _(revised 2026-09-02)_
 

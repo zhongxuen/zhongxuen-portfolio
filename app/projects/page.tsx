@@ -213,9 +213,10 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                             {matches.map((project, index) => (
                                 <div
                                     key={project.slug}
-                                    data-reveal="up"
+                                    data-reveal="pop"
                                     style={revealDelay(stagger(index))}
                                     className={cn(
+                                        "bp-branch",
                                         project.slug === featureSlug &&
                                             "xl:col-span-2 xl:row-span-2",
                                     )}

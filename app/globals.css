@@ -264,6 +264,22 @@
     /* --- Motion ---------------------------------------------------------- */
     --ease-bp: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-bp-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    /*
+     * Overshoot. The one curve on the site that passes its target and comes
+     * back, which is what makes an entrance read as a *landing* rather than as
+     * a fade that happens to move. Reserved for the `pop` reveal and the branch
+     * taps — an overshoot on type is a wobble, not a settle, so it never goes
+     * near a heading.
+     */
+    --ease-bp-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /*
+     * Length of a branch tap — the hairline that runs from a plate's top edge
+     * up into the gutter above it. Matches the `gap-6` (1.5rem) every card grid
+     * on the site is laid out on, so a tap spans exactly the space between two
+     * rows and lands on the plate above rather than stopping short of it.
+     */
+    --bp-branch: 1.5rem;
 
     --default-transition-duration: var(--bp-dur-fast);
     --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
@@ -632,6 +648,25 @@ samp {
     }
 
     /*
+     * Plate landing. `scale` with the brakes off: further travel, a longer
+     * runway and the overshoot curve, so the plate passes its resting position
+     * by a hair and settles back onto it. This is the variant for anything the
+     * reader is meant to *notice* arriving — project cards, skill tiles — where
+     * the restraint of `up` read as nothing happening at all.
+     *
+     * Not for type. The overshoot is legible as a bounce at plate scale and as
+     * a wobble at body-copy scale, which is why headings keep `blur`/`up`.
+     */
+    [data-reveal="pop"] {
+        scale: 0.94;
+        translate: 0 28px;
+        transition:
+            opacity var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms),
+            scale var(--bp-dur-slow) var(--ease-bp-back) var(--reveal-delay, 0ms),
+            translate var(--bp-dur-slow) var(--ease-bp-back) var(--reveal-delay, 0ms);
+    }
+
+    /*
      * Focus pull. The one entrance that reads as the page resolving rather
      * than as boxes moving, so it is reserved for the largest type on a
      * section — the h2 in every SectionHeading — and used nowhere else. A blur
@@ -710,7 +745,9 @@ samp {
      * BlueprintFrame's `saturate-50` is exactly that shape.
      */
     [data-visible="true"] [data-reveal="scale"],
-    [data-reveal="scale"][data-visible="true"] {
+    [data-reveal="scale"][data-visible="true"],
+    [data-visible="true"] [data-reveal="pop"],
+    [data-reveal="pop"][data-visible="true"] {
         scale: 1;
     }
 
@@ -769,6 +806,12 @@ samp {
         [data-reveal="scale"][data-visible="true"] {
             scale: 0.96;
             translate: 0 12px;
+        }
+
+        [data-visible="true"] [data-reveal="pop"],
+        [data-reveal="pop"][data-visible="true"] {
+            scale: 0.94;
+            translate: 0 28px;
         }
 
         [data-visible="true"] [data-reveal="blur"],
@@ -1158,6 +1201,107 @@ samp {
 :focus-within > .bp-pop {
     scale: 1.14;
     color: var(--bp-accent);
+}
+
+/* ============================================================================
+   BRANCH TAPS
+   ----------------------------------------------------------------------------
+   The wiring that links a plate to the section above it: a hairline that runs
+   in along the plate's top edge and then drops into its top-left corner, like a
+   trace arriving at a component on a board.
+
+   Two pseudo-elements on the *reveal wrapper*, not on the card. Card already
+   spends its own ::before/::after on the corner registration ticks, and the
+   wrapper is the element that carries `--reveal-delay` anyway — so the trace
+   draws on the same beat as the plate it feeds, for free.
+
+   Geometry is deliberately self-contained: the run spans from the wrapper's
+   left edge to `--bp-branch-x` and the drop sits at that same x, so the whole
+   trace lives inside the plate's own column. Nothing reaches into a grid gap it
+   cannot measure, so this is safe on any grid, at any breakpoint, on the last
+   card of a wrapping row — none of the cases a sibling-to-sibling connector
+   would have had to special-case and could not.
+
+   Resting state is fully drawn. Like the entrance choreography, the *hidden*
+   state is scoped to `no-preference` further down rather than clamped by the
+   global backstop: a reduced-motion reader gets the finished schematic, not a
+   set of traces stranded at zero length.
+   ========================================================================== */
+
+.bp-branch {
+    position: relative;
+}
+
+/*
+ * The run — in along the top edge, fading up out of nothing at its open end and
+ * gaining the accent as it reaches the corner, so the eye is pulled along it in
+ * the direction the trace travels.
+ */
+.bp-branch::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + var(--bp-branch) - 1px);
+    left: 0;
+    width: var(--bp-branch-x, 2.25rem);
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--bp-accent));
+    transform-origin: right center;
+    pointer-events: none;
+}
+
+/*
+ * The drop — down into the plate's top edge, where the trace terminates. The
+ * junction is the brightest point of the whole figure: a 3px accent cap laid
+ * over the top of the line by `box-shadow`, which is how the corner gets a
+ * solder-point without a third pseudo-element (Card has already spent its own
+ * two on the registration ticks).
+ */
+.bp-branch::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: var(--bp-branch-x, 2.25rem);
+    width: 1px;
+    height: var(--bp-branch);
+    background: linear-gradient(to bottom, var(--bp-accent), var(--bp-line-strong));
+    box-shadow: -1px -1px 0 0 var(--bp-accent);
+    transform-origin: top center;
+    pointer-events: none;
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    /*
+     * Drawn in sequence — the run arrives, then the drop follows it down into
+     * the plate. Both trail their own plate's `--reveal-delay`, so on a
+     * staggered grid the traces cascade with the cards rather than all firing
+     * at once.
+     */
+    .bp-branch::before {
+        scale: 0 1;
+        transition: scale var(--bp-dur-base) var(--ease-bp) calc(var(--reveal-delay, 0ms) + 90ms);
+    }
+
+    .bp-branch::after {
+        scale: 1 0;
+        transition: scale var(--bp-dur-base) var(--ease-bp-back)
+            calc(var(--reveal-delay, 0ms) + 200ms);
+    }
+
+    [data-visible="true"] .bp-branch::before,
+    [data-visible="true"] .bp-branch::after {
+        scale: 1 1;
+    }
+
+    /* Same parse-time entry state the `immediate` reveals rely on. */
+    @starting-style {
+        [data-visible="true"] .bp-branch::before {
+            scale: 0 1;
+        }
+
+        [data-visible="true"] .bp-branch::after {
+            scale: 1 0;
+        }
+    }
 }
 
 /* ============================================================================

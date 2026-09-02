@@ -36,9 +36,9 @@ export function CertificationsStrip() {
                 {certifications.map((certification, index) => (
                     <li
                         key={certification.id}
-                        data-reveal="up"
+                        data-reveal="pop"
                         style={revealDelay(stagger(index))}
-                        className="bp-ticks bp-ticks-live bp-lift flex flex-col gap-1 rounded-lg border border-line bg-surface p-4"
+                        className="bp-branch bp-ticks bp-ticks-live bp-lift flex flex-col gap-1 rounded-lg border border-line bg-surface p-4 [--bp-branch-x:1rem]"
                     >
                         <p className="bp-meta text-ink-muted">
                             {formatMonthYear(certification.date)}
