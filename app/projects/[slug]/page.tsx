@@ -14,7 +14,7 @@ import { CredentialsPlate } from "@/components/projects/CredentialsPlate";
 import { ProjectGallery } from "@/components/projects/ProjectGallery";
 import { ProjectPager } from "@/components/projects/ProjectPager";
 import { Reveal } from "@/components/motion/Reveal";
-import { revealDelay, stagger } from "@/lib/reveal";
+import { revealDelay, stagger, TAG_STAGGER_STEP } from "@/lib/reveal";
 import { buildMetadata } from "@/lib/metadata";
 import { PROJECTS_PATH } from "@/lib/projectFilters";
 import {
@@ -253,9 +253,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     </Reveal>
 
                     <div className="flex min-w-0 flex-col gap-12">
-                        <Reveal variant="right" className="flex flex-wrap gap-2">
-                            {project.technologies.map((tech) => (
-                                <Badge key={tech}>{tech}</Badge>
+                        {/*
+                         * Badges arrive one at a time rather than as a single
+                         * block. They keep the body column's "right" direction
+                         * so the rail and the article still converge on the
+                         * seam between them — only the granularity changed, on
+                         * the tighter TAG_STAGGER_STEP a list this long needs.
+                         */}
+                        <Reveal className="flex flex-wrap gap-2">
+                            {project.technologies.map((tech, index) => (
+                                <Badge
+                                    key={tech}
+                                    data-reveal="right"
+                                    style={revealDelay(stagger(index, TAG_STAGGER_STEP))}
+                                >
+                                    {tech}
+                                </Badge>
                             ))}
                         </Reveal>
 
@@ -307,9 +320,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                                 >
                                     Screens
                                 </h2>
-                                <div data-reveal="up" style={revealDelay(stagger(1))}>
-                                    <ProjectGallery images={screenshots} title={project.title} />
-                                </div>
+                                {/*
+                                 * No wrapper reveal here: the gallery staggers
+                                 * its own thumbnails, and a `data-reveal` on a
+                                 * box around them would compound with theirs —
+                                 * two translates on the same pixels, so the
+                                 * grid would travel twice as far as everything
+                                 * else on the page.
+                                 */}
+                                <ProjectGallery images={screenshots} title={project.title} />
                             </Reveal>
                         )}
                     </div>
@@ -327,24 +346,44 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </Reveal>
 
                 {relatedProjects.length > 0 && (
-                    <section aria-labelledby="related-heading" className="flex flex-col gap-6">
+                    <Reveal
+                        as="section"
+                        aria-labelledby="related-heading"
+                        className="flex flex-col gap-6"
+                    >
                         <h2
                             id="related-heading"
+                            data-reveal="up"
                             className="font-display text-h3 font-medium text-ink"
                         >
                             Related projects
                         </h2>
                         {/* Same breakpoints as /projects, so CATALOGUE_CARD_SIZES describes this grid too. */}
                         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {relatedProjects.map((relatedProject) => (
-                                <ProjectCard
+                            {relatedProjects.map((relatedProject, index) => (
+                                /*
+                                 * The stagger wrapper is also the grid item, so
+                                 * the card keeps filling its cell — moving the
+                                 * attributes onto ProjectCard itself would need
+                                 * it to forward style, and a card that is no
+                                 * longer a child of the grid loses its track.
+                                 * Same shape as the catalogue grid on
+                                 * /projects and the featured grid on the
+                                 * homepage.
+                                 */
+                                <div
                                     key={relatedProject.slug}
-                                    project={relatedProject}
-                                    sizes={CATALOGUE_CARD_SIZES}
-                                />
+                                    data-reveal="up"
+                                    style={revealDelay(stagger(index))}
+                                >
+                                    <ProjectCard
+                                        project={relatedProject}
+                                        sizes={CATALOGUE_CARD_SIZES}
+                                    />
+                                </div>
                             ))}
                         </div>
-                    </section>
+                    </Reveal>
                 )}
             </Container>
         </>

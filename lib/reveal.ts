@@ -26,6 +26,17 @@ export const STAGGER_LEAD = 80;
 export const WORD_STAGGER_STEP = 40;
 
 /**
+ * Cadence for rows of small tags — the technology badges on a case study.
+ *
+ * Tighter than `STAGGER_STEP` because these lists are long and unbounded: a
+ * project with fourteen technologies would take most of a second to finish
+ * arriving on the standard step, and the last badge landing well after the
+ * paragraph below it has settled reads as a stalled render rather than as a
+ * cascade. At this step the whole row resolves inside `--bp-dur-slow`.
+ */
+export const TAG_STAGGER_STEP = 30;
+
+/**
  * Inline style setting an element's entrance delay.
  *
  * `--reveal-delay` is read by the shared `[data-reveal]` transition, so a

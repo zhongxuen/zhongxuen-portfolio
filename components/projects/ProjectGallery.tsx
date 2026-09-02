@@ -4,6 +4,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { Maximize2 } from "lucide-react";
+import { revealDelay, stagger } from "@/lib/reveal";
 
 /**
  * `ssr: false` is only legal inside a Client Component — see
@@ -43,7 +44,18 @@ export function ProjectGallery({ images, title }: ProjectGalleryProps) {
         <>
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {images.map((src, index) => (
-                    <li key={src}>
+                    /*
+                     * The plate settle, cascading across the grid. `scale` over
+                     * `up` because these are framed images: they resolve into
+                     * register the way the rest of the site's plates do, rather
+                     * than sliding. Offset by one step so the "Screens" heading
+                     * above still leads the band.
+                     *
+                     * The reveal lives on the <li>, not the <button>, so the
+                     * transform never fights the hover scale on the image
+                     * inside it.
+                     */
+                    <li key={src} data-reveal="scale" style={revealDelay(stagger(index + 1))}>
                         <button
                             type="button"
                             onClick={() => setOpenIndex(index)}
