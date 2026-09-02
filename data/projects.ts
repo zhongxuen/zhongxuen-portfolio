@@ -7,7 +7,6 @@ export const projects: Project[] = [
         description:
             "A swipe-based mobile job-search app for Android, built with React Native (Expo) and Supabase, with AI-assisted job matching and direct recruiter messaging.",
         technologies: ["React Native", "Expo", "TypeScript", "Supabase"],
-        githubUrl: "",
         githubRepo: "JobNow-Application-Capstone-Project",
         liveUrl: "https://job-now-navy.vercel.app/",
         screenshots: ["/images/projects/jobnow-landing.jpg"],
@@ -50,7 +49,6 @@ export const projects: Project[] = [
         description:
             "A Java desktop app that manages tutorial centre operations end-to-end — student records, OOP design, and file-based persistence.",
         technologies: ["Java", "OOP", "File I/O"],
-        githubUrl: "",
         githubRepo: "Advanced-Tution-Centre-Management-Java",
         keyFeatures: [
             "Role-based workflows for admins, receptionists, tutors, and students",
@@ -117,7 +115,6 @@ export const projects: Project[] = [
         description:
             "A gamified environmental-awareness platform built with PHP and MySQL, where students complete quests, earn badges, and redeem rewards under moderator and admin oversight.",
         technologies: ["PHP", "MySQL", "JavaScript", "CSS"],
-        githubUrl: "",
         githubRepo: "EcoQuest-Web-Development",
         keyFeatures: [
             "Role-based access for Admin, Moderator, and Student accounts",
@@ -134,7 +131,6 @@ export const projects: Project[] = [
         description:
             "A menu-driven Python CLI for managing student records, with full CRUD operations backed by file-based storage.",
         technologies: ["Python", "File I/O"],
-        githubUrl: "",
         githubRepo: "Education-Management-System-Python",
         keyFeatures: [
             "Role-based login for Admin, Staff, Teacher, and Student accounts",
@@ -150,7 +146,6 @@ export const projects: Project[] = [
         description:
             "A static restaurant-management UI covering dashboard, POS, reservations, inventory, staff, and promotions — frontend-only with a Firebase fallback.",
         technologies: ["HTML", "Tailwind CSS", "JavaScript"],
-        githubUrl: "",
         githubRepo: "JomMakan-Website-Interface",
         keyFeatures: [
             "Multi-view sidebar navigation (Dashboard, POS, Reservations, Inventory, Customers, Staff, Promotions)",
@@ -168,7 +163,6 @@ export const projects: Project[] = [
         description:
             "A Botpress travel-assistant chatbot with structured conversation flows and intent handling for trip-planning queries.",
         technologies: ["Botpress"],
-        githubUrl: "",
         keyFeatures: [
             "Conversational flow design",
             "Intent handling",

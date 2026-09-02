@@ -1,0 +1,47 @@
+name: CI
+
+on:
+    push:
+        branches: ["**"]
+    pull_request:
+
+# A new push to the same branch supersedes the run in flight.
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    verify:
+        name: typecheck · lint · test · build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Typecheck
+              run: npm run typecheck
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Test
+              run: npm test
+
+            - name: Build
+              run: npm run build
+              env:
+                  # lib/constants.ts refuses to build when the site URL resolves to
+                  # localhost, and neither NEXT_PUBLIC_SITE_URL nor Vercel's
+                  # VERCEL_PROJECT_PRODUCTION_URL exists in CI. This placeholder origin
+                  # only has to be non-local — CI never publishes these URLs.
+                  NEXT_PUBLIC_SITE_URL: https://ci.invalid

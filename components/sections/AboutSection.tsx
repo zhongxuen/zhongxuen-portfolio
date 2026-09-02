@@ -1,8 +1,13 @@
 import Image from "next/image";
-import { MapPin, GraduationCap, Languages } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { AUTHOR } from "@/lib/constants";
+import { BlueprintFrame } from "@/components/ui/BlueprintFrame";
+import { Reveal } from "@/components/motion/Reveal";
+import { education } from "@/data/education";
+import { now } from "@/data/now";
+import { AUTHOR, AVATAR_PATH } from "@/lib/constants";
+import { revealDelay, stagger } from "@/lib/reveal";
+import { formatMonthYear, sortByStartDateDesc } from "@/lib/utils";
 
 /**
  * Static prose sourced from CV.md's PROFILE SUMMARY / ADDITIONAL
@@ -12,48 +17,134 @@ import { AUTHOR } from "@/lib/constants";
 const SUMMARY =
     "Motivated diploma student in Information Technology specializing in Software Engineering, with hands-on experience across full-stack development, UI/UX design, database management, and software system design — building complete applications from requirements through deployment using both code-based and low-code platforms.";
 
-/** Assumes a profile photo will live at /public/images/profile/avatar.jpg. */
-const AVATAR_PATH = "/images/profile/avatar.jpg";
+const LANGUAGES = "English & Chinese (fluent), Malay (basic)";
 
-const quickFacts = [
-    { icon: MapPin, label: AUTHOR.location },
-    { icon: GraduationCap, label: "Diploma in IT (Software Engineering), APU — Expected 2027" },
-    { icon: Languages, label: "English & Chinese (fluent), Malay (basic)" },
+/*
+ * The education row reads out of data/education.ts rather than restating the
+ * programme in a literal. The two had already drifted — this file used to claim
+ * a 2027 completion against the 2026 recorded there — and a spec table whose
+ * facts disagree with the section below it is worse than no spec table.
+ */
+const [currentEducation] = sortByStartDateDesc(education);
+
+const specs = [
+    { key: "Location", value: AUTHOR.location },
+    {
+        key: "Education",
+        value: `${currentEducation.degree}, ${currentEducation.institution}`,
+    },
+    { key: "Languages", value: LANGUAGES },
 ];
 
+/**
+ * Who the author is (docs/uiux.md §4.3).
+ *
+ * Three plates: a framed portrait, a mono spec table, and a NOW block. The
+ * spec table exists because a recruiter scanning for location and language
+ * should not have to read a paragraph to find them, and the NOW block because
+ * a dated line about current work is the cheapest possible signal that the site
+ * is not abandoned.
+ *
+ * Stays a Server Component — the only moving parts are the CSS entrance
+ * choreography and the frame's hover resolve.
+ */
 export function AboutSection() {
     return (
-        <Container as="section" id="about" className="flex flex-col gap-10 py-20 md:py-28">
+        <Container
+            as="section"
+            id="about"
+            aria-labelledby="about-heading"
+            className="bp-section-y flex flex-col gap-10"
+        >
             <SectionHeading
+                index={1}
+                headingId="about-heading"
                 eyebrow="About"
                 title="Who I am"
                 description="A quick introduction before you dive into the projects and skills below."
             />
 
-            <div className="grid gap-10 md:grid-cols-[1fr_1.4fr] md:items-start">
-                <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-xl bg-card">
-                    <Image
-                        src={AVATAR_PATH}
-                        alt={AUTHOR.name}
-                        fill
-                        className="object-cover"
-                        sizes="(min-width: 768px) 320px, 100vw"
-                    />
+            <Reveal className="grid gap-10 md:grid-cols-[minmax(0,18rem)_1fr] md:items-start">
+                <div data-reveal="up">
+                    <BlueprintFrame
+                        caption="Fig.00 — The author"
+                        measure="1:1"
+                        frameClassName="aspect-square"
+                    >
+                        <Image
+                            src={AVATAR_PATH}
+                            alt={AUTHOR.name}
+                            fill
+                            /*
+                             * The frame column is `minmax(0, 18rem)` from md up
+                             * and full-width below it, less the 1.5rem the
+                             * measure line takes. `100vw` on mobile would ask a
+                             * phone at DPR 3 for a 1170px source for a box that
+                             * never exceeds 288px.
+                             */
+                            sizes="min(100vw, 288px)"
+                            className="object-cover"
+                        />
+                    </BlueprintFrame>
                 </div>
 
-                <div className="flex flex-col gap-6">
-                    <p className="text-base leading-relaxed text-muted">{SUMMARY}</p>
+                <div className="flex flex-col gap-8">
+                    <p
+                        data-reveal="up"
+                        style={revealDelay(stagger(0))}
+                        className="text-body-lg leading-relaxed text-pretty text-ink-muted"
+                    >
+                        {SUMMARY}
+                    </p>
 
-                    <ul className="flex flex-col gap-3">
-                        {quickFacts.map(({ icon: Icon, label }) => (
-                            <li key={label} className="flex items-center gap-3 text-sm text-foreground">
-                                <Icon size={18} className="shrink-0 text-primary" />
-                                {label}
-                            </li>
+                    <dl
+                        data-reveal="up"
+                        style={revealDelay(stagger(1))}
+                        className="flex flex-col border-t border-line"
+                    >
+                        {specs.map((spec) => (
+                            <div
+                                key={spec.key}
+                                className="grid grid-cols-[6.5rem_1fr] gap-4 border-b border-line py-3"
+                            >
+                                <dt className="bp-meta pt-0.5 text-ink-muted">{spec.key}</dt>
+                                <dd className="text-sm text-ink">{spec.value}</dd>
+                            </div>
                         ))}
-                    </ul>
+                    </dl>
+
+                    <div
+                        data-reveal="up"
+                        style={revealDelay(stagger(2))}
+                        className="bp-ticks rounded-xl border border-line bg-surface p-5"
+                    >
+                        <h3 className="bp-meta mb-4 flex items-center gap-3 text-accent">
+                            Now
+                            <span
+                                aria-hidden="true"
+                                className="h-px flex-1 bg-linear-to-r from-line-strong to-transparent"
+                            />
+                        </h3>
+
+                        <ul className="flex flex-col gap-3">
+                            {now.map((entry) => (
+                                <li key={entry.id} className="flex flex-col gap-1">
+                                    <p className="flex items-baseline gap-3">
+                                        <span className="bp-meta text-ink">{entry.label}</span>
+                                        <span className="bp-meta text-ink-muted">
+                                            <span className="sr-only">since</span>
+                                            {formatMonthYear(entry.since)}
+                                        </span>
+                                    </p>
+                                    <p className="font-mono text-sm leading-relaxed text-ink-muted">
+                                        {entry.detail}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
-            </div>
+            </Reveal>
         </Container>
     );
 }

@@ -1,37 +1,289 @@
 @import "tailwindcss";
 
-html {
-    scroll-behavior: smooth;
-}
+/* ============================================================================
+   BLUEPRINT DESIGN TOKENS
+   ----------------------------------------------------------------------------
+   Direction "D — Blueprint / Engineered" (docs/uiux.md §2). The raw values live
+   as `--bp-*` custom properties on :root so a theme swap is a single attribute
+   change; `@theme inline` below re-exports them as Tailwind utility namespaces.
+   `inline` matters: it makes Tailwind emit `var(--bp-ink)` at the use site
+   rather than snapshotting the value, so `[data-theme="light"]` retints the
+   whole site without regenerating any CSS.
+
+   Theme selection: `data-theme` on <html> is authoritative and is set before
+   first paint by the inline script in lib/theme.ts. With no attribute — JS off,
+   or storage unreadable — the `prefers-color-scheme` branch below decides, so
+   the OS preference is the default rather than a fallback.
+
+   Contrast: every foreground/background pair below was measured against
+   WCAG AA (4.5:1 body, 3:1 large text + UI borders); re-audited 2026-09-01 when
+   the light theme became reachable by default, this time including coloured
+   text over its own tinted plate (Badge, StatusPlate, filter chips), which is
+   the tightest pairing on the site and had not been checked before.
+
+   Lowest passing body pair is ink-muted on surface-alt at 4.57:1 (dark) and
+   signal on surface-alt at 5.31:1 (light); the tightest tinted pair is
+   signal-on-signal/10 over surface-alt at 4.48:1 (dark) and accent-on-accent/8
+   over void at 4.94:1 (light). Two deliberate exceptions:
+     - `--bp-ink-faint` (2.30–2.89:1 dark / 3.05–3.43:1 light) is DECORATIVE
+       ONLY. It may never carry information that is not also available
+       elsewhere. There is no fourth text tier available: ink-muted is already
+       the AA floor in the dark theme, so anything below it is by definition
+       ornament. The Phase 6 sweep found this rule had drifted — spec keys,
+       timeline dates, filter counts, palette group headings, form placeholders
+       and the error digest had all landed on it — and moved every one of them
+       to ink-muted. What may still use it: SVG annotations, measure-line
+       labels, `aria-hidden` separators and captions, hover-only annotations,
+       and inactive controls (WCAG 1.4.3 exempts both incidental text and
+       inactive components).
+     - `--bp-line` / `--bp-line-strong` are hairline chrome, not control
+       affordances. Any border that identifies an interactive control (form
+       inputs, segmented filters) must use `--bp-line-ui`, which is ≥3:1.
+   ========================================================================== */
 
 :root {
-    --background: #0F172A;
-    --card: #1E293B;
-    --primary: #3B82F6;
-    --secondary: #38BDF8;
-    --foreground: #F8FAFC;
-    --muted: #94A3B8;
-    --success: #10B981;
+    color-scheme: dark;
+
+    /* --- Surfaces -------------------------------------------------------- */
+    --bp-void: #070c14; /* page background, beneath the grid */
+    --bp-base: #0b1220; /* section background */
+    --bp-surface: #111c2e; /* cards, plates */
+    --bp-surface-alt: #16243a; /* nested surfaces, inputs, hover */
+
+    /* --- Lines ----------------------------------------------------------- */
+    --bp-line: #1e3050; /* hairline chrome — decorative */
+    --bp-line-strong: #2c446e; /* active/hover chrome — decorative */
+    --bp-line-ui: #5471a0; /* 3.79:1 on base — control borders */
+
+    /* --- Ink ------------------------------------------------------------- */
+    --bp-ink: #e6edf7;
+    --bp-ink-muted: #7d8ca3;
+    --bp-ink-faint: #4e5c72; /* annotations only — see note above */
+
+    /* --- Signal ---------------------------------------------------------- */
+    --bp-accent: #38bdf8; /* links, primary action, active state */
+    --bp-accent-deep: #0ea5e9; /* accent hover/pressed */
+    --bp-accent-ink: #070c14; /* text on an accent fill — 9.15:1 */
+    --bp-signal: #f59e0b; /* annotations, "featured", callouts */
+    --bp-success: #34d399; /* live demo available, form success */
+    --bp-danger: #f87171; /* form errors */
+
+    /* --- Drafting grid --------------------------------------------------- */
+    --bp-grid-minor: rgba(56, 189, 248, 0.045);
+    --bp-grid-major: rgba(56, 189, 248, 0.075);
+
+    /* --- Elevation ------------------------------------------------------- */
+    --bp-shadow-plate: 0 1px 2px rgb(0 0 0 / 0.4);
+    --bp-shadow-lift: 0 12px 32px -14px rgb(0 0 0 / 0.75);
+    --bp-shadow-glow: 0 0 0 1px var(--bp-line-strong), 0 16px 44px -20px rgb(56 189 248 / 0.3);
+
+    /* --- Motion ---------------------------------------------------------- */
+    /* Mirrors DUR in lib/animations.ts. Keep the two in step. */
+    --bp-dur-fast: 180ms;
+    --bp-dur-base: 340ms;
+    --bp-dur-slow: 600ms;
+    --bp-dur-draw: 1100ms;
+
+    /* --- Layering -------------------------------------------------------- */
+    /* One authoritative scale. Never write a bare z-[n] anywhere else. */
+    --bp-z-grid: 0;
+    --bp-z-content: 10;
+    --bp-z-sticky: 30;
+    --bp-z-nav: 50;
+    --bp-z-overlay: 80;
+    --bp-z-modal: 90;
+    --bp-z-toast: 100;
+
+    /* --- Rhythm ---------------------------------------------------------- */
+    --bp-section-y: clamp(4.5rem, 9vw, 8rem);
+    --bp-section-y-tight: clamp(3rem, 6vw, 5rem);
+}
+
+/*
+ * Light theme — "printed blueprint on vellum".
+ *
+ * Two selectors carry one palette, duplicated because a media query cannot join
+ * a selector list. Keep the two blocks in step — indentation aside they are the
+ * same declarations, and diffing them is the only check there is.
+ *
+ *   1. System default — the OS asks for light and no explicit choice has been
+ *      recorded. This is the branch a visitor without JS gets, so it has to
+ *      carry the whole palette rather than lean on the pre-paint script.
+ *   2. Explicit choice — `data-theme="light"`, written by that script before
+ *      first paint and by hooks/useTheme.tsx afterwards. Declared second so it
+ *      wins over branch 1 at equal specificity (0,2,0) on an OS set to light.
+ *
+ * `data-theme="dark"` needs no block: dark is the :root default. The `:not()`
+ * in branch 1 is what stops an OS set to light from overriding an explicit
+ * choice of dark.
+ *
+ * Measured (2026-09-01), worst surface first:
+ *   ink        16.65:1 on void   |  ink-muted   5.52:1 on void, 6.20:1 on card
+ *   accent      5.28:1 on void   |  accent-ink  5.93:1 on an accent fill
+ *   signal      5.79:1 on void   |  success     5.89:1 on void
+ *   danger      5.76:1 on void   |  line-ui     3.05:1 on void (UI, needs 3)
+ *   ink-faint   3.05:1 on void   — decorative only, per the note above.
+ *
+ * `--bp-signal` and `--bp-success` are darker than the values proposed in
+ * docs/uiux.md §2.2 (#b45309 / #047857). Those measured 4.47:1 and 4.88:1 on
+ * void, and 3.92:1 / 4.48:1 as text over their own 10% tint — the Badge and
+ * StatusPlate treatments — so both missed AA where they are actually used.
+ * The plan flags its hexes as proposals pending measurement; these are the
+ * measured replacements, and they hold the same hue.
+ */
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        color-scheme: light;
+
+        --bp-void: #eef2f7;
+        --bp-base: #f7f9fc;
+        --bp-surface: #ffffff;
+        --bp-surface-alt: #eef2f7;
+
+        --bp-line: #d3dce8;
+        --bp-line-strong: #a9b8cc;
+        --bp-line-ui: #7c8ca1;
+
+        --bp-ink: #0b1220;
+        --bp-ink-muted: #52627a;
+        --bp-ink-faint: #7c8ca1;
+
+        --bp-accent: #0369a1;
+        --bp-accent-deep: #075985;
+        --bp-accent-ink: #ffffff;
+        --bp-signal: #9a4506;
+        --bp-success: #046a4d;
+        --bp-danger: #b91c1c;
+
+        --bp-grid-minor: rgba(3, 105, 161, 0.05);
+        --bp-grid-major: rgba(3, 105, 161, 0.09);
+
+        --bp-shadow-plate: 0 1px 2px rgb(11 18 32 / 0.06);
+        --bp-shadow-lift: 0 12px 32px -14px rgb(11 18 32 / 0.18);
+        --bp-shadow-glow: 0 0 0 1px var(--bp-line-strong), 0 16px 44px -20px rgb(3 105 161 / 0.25);
+    }
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --bp-void: #eef2f7;
+    --bp-base: #f7f9fc;
+    --bp-surface: #ffffff;
+    --bp-surface-alt: #eef2f7;
+
+    --bp-line: #d3dce8;
+    --bp-line-strong: #a9b8cc;
+    --bp-line-ui: #7c8ca1;
+
+    --bp-ink: #0b1220;
+    --bp-ink-muted: #52627a;
+    --bp-ink-faint: #7c8ca1;
+
+    --bp-accent: #0369a1;
+    --bp-accent-deep: #075985;
+    --bp-accent-ink: #ffffff;
+    --bp-signal: #9a4506;
+    --bp-success: #046a4d;
+    --bp-danger: #b91c1c;
+
+    --bp-grid-minor: rgba(3, 105, 161, 0.05);
+    --bp-grid-major: rgba(3, 105, 161, 0.09);
+
+    --bp-shadow-plate: 0 1px 2px rgb(11 18 32 / 0.06);
+    --bp-shadow-lift: 0 12px 32px -14px rgb(11 18 32 / 0.18);
+    --bp-shadow-glow: 0 0 0 1px var(--bp-line-strong), 0 16px 44px -20px rgb(3 105 161 / 0.25);
 }
 
 @theme inline {
-    --color-background: var(--background);
-    --color-card: var(--card);
-    --color-primary: var(--primary);
-    --color-secondary: var(--secondary);
-    --color-foreground: var(--foreground);
-    --color-muted: var(--muted);
-    --color-success: var(--success);
+    /* --- Colour --------------------------------------------------------- */
+    --color-void: var(--bp-void);
+    --color-canvas: var(
+        --bp-base
+    ); /* named "canvas" — `base` would collide
+                                       with Tailwind's text-base font size */
+    --color-surface: var(--bp-surface);
+    --color-surface-alt: var(--bp-surface-alt);
 
+    --color-line: var(--bp-line);
+    --color-line-strong: var(--bp-line-strong);
+    --color-line-ui: var(--bp-line-ui);
+
+    --color-ink: var(--bp-ink);
+    --color-ink-muted: var(--bp-ink-muted);
+    --color-ink-faint: var(--bp-ink-faint);
+
+    --color-accent: var(--bp-accent);
+    --color-accent-deep: var(--bp-accent-deep);
+    --color-accent-ink: var(--bp-accent-ink);
+    --color-signal: var(--bp-signal);
+    --color-success: var(--bp-success);
+    --color-danger: var(--bp-danger);
+
+    /* --- Typography ------------------------------------------------------ */
     --font-sans: var(--font-inter);
-    --font-heading: var(--font-poppins);
-    --font-mono: var(--font-jetbrains-mono);
+    --font-display: var(--font-space-grotesk);
+    --font-mono: var(--font-ibm-plex-mono);
+
+    --text-display: clamp(2.75rem, 7vw, 6rem);
+    --text-display--line-height: 0.94;
+    --text-display--letter-spacing: -0.035em;
+    --text-display--font-weight: 700;
+
+    --text-h2: clamp(2rem, 4vw, 3.25rem);
+    --text-h2--line-height: 1.04;
+    --text-h2--letter-spacing: -0.025em;
+
+    --text-h3: 1.375rem;
+    --text-h3--line-height: 1.3;
+    --text-h3--letter-spacing: -0.012em;
+
+    --text-body-lg: 1.125rem;
+    --text-body-lg--line-height: 1.65;
+
+    --text-meta: 0.8125rem;
+    --text-meta--line-height: 1.4;
+    --text-meta--letter-spacing: 0.14em;
+
+    /* --- Radius ---------------------------------------------------------- */
+    /* Deliberately tight — a drafting plate has corners, not pills. These
+       override the Tailwind defaults, so existing rounded-lg / rounded-xl
+       usages re-skin automatically. */
+    --radius-xs: 1px;
+    --radius-sm: 2px;
+    --radius-md: 3px;
+    --radius-lg: 4px;
+    --radius-xl: 6px;
+    --radius-2xl: 8px;
+
+    /* --- Elevation ------------------------------------------------------- */
+    --shadow-plate: var(--bp-shadow-plate);
+    --shadow-lift: var(--bp-shadow-lift);
+    --shadow-glow: var(--bp-shadow-glow);
+
+    /* --- Motion ---------------------------------------------------------- */
+    --ease-bp: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-bp-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    --default-transition-duration: var(--bp-dur-fast);
+    --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================================
+   BASE
+   ========================================================================== */
+
+html {
+    scroll-behavior: smooth;
+    /* Keeps #section jumps clear of the fixed 64px navbar. */
+    scroll-padding-top: 5rem;
 }
 
 body {
-    background: var(--color-background);
-    color: var(--color-foreground);
+    background: var(--bp-void);
+    color: var(--bp-ink);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -40,11 +292,578 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
 }
 
 code,
 pre,
-kbd {
+kbd,
+samp {
     font-family: var(--font-mono);
+}
+
+::selection {
+    background: var(--bp-accent);
+    color: var(--bp-accent-ink);
+}
+
+/*
+ * prefers-reduced-motion backstop, and the site's only motion policy — there is
+ * no animation runtime left to configure (docs/uiux.md §11.1.1). The entrance
+ * system scopes its own hidden state to `no-preference` further down, so this
+ * exists to catch everything written since: CSS transitions, keyframes, and the
+ * smooth scroll-behavior declared above (disabling that is the correct outcome,
+ * not a side effect). lib/motion.ts covers the handful of effects that have to
+ * ask in JS.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================================================
+   THEME TOGGLE
+   ========================================================================== */
+
+/*
+ * The toggle in components/ui/ThemeToggle.tsx ships all three of its icons and
+ * all three of its accessible names; this picks the pair matching
+ * `data-theme-mode`, the second attribute the pre-paint script writes.
+ *
+ * Doing it here rather than in React is what keeps that component's server
+ * output identical in every mode: no hydration mismatch to suppress, and the
+ * correct icon in the first painted frame rather than one that swaps in when
+ * hydration lands. `display` is safe to toggle on the `sr-only` spans — that
+ * utility clips, it does not set `display` — and `display: none` is also what
+ * keeps the two inactive names out of the accessible name computation.
+ *
+ * With no attribute at all (JS off) the `system` pair shows, which is the truth
+ * of that situation: the palette is following the OS.
+ */
+[data-theme-icon] {
+    display: none;
+}
+
+:root:not([data-theme-mode]) [data-theme-icon="system"],
+:root[data-theme-mode="system"] [data-theme-icon="system"],
+:root[data-theme-mode="light"] [data-theme-icon="light"],
+:root[data-theme-mode="dark"] [data-theme-icon="dark"] {
+    display: block;
+}
+
+/* ============================================================================
+   BLUEPRINT UTILITIES
+   ========================================================================== */
+
+/*
+ * Drafting grid. A single fixed, pointer-events-none layer: pure CSS
+ * gradients, no canvas, no JS, so it costs one composited paint. Masked so it
+ * dissolves below the fold and never competes with body copy (docs/uiux.md
+ * §2.4.1 — motifs are chrome, never content).
+ */
+@utility bp-grid {
+    position: fixed;
+    inset: 0;
+    z-index: var(--bp-z-grid);
+    pointer-events: none;
+    background-image:
+        linear-gradient(to right, var(--bp-grid-minor) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bp-grid-minor) 1px, transparent 1px),
+        linear-gradient(to right, var(--bp-grid-major) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bp-grid-major) 1px, transparent 1px);
+    background-size:
+        32px 32px,
+        32px 32px,
+        128px 128px,
+        128px 128px;
+    mask-image: linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 1) 0%,
+        rgb(0 0 0 / 0.7) 55%,
+        rgb(0 0 0 / 0) 100%
+    );
+}
+
+/*
+ * The drafting grid again, but scoped to a box rather than the viewport: an
+ * absolutely-positioned overlay laid over project imagery so a screenshot
+ * reads as a plate on the drawing at rest and clears to full colour on hover
+ * (docs/uiux.md §4.5). Finer pitch than `bp-grid` because it covers a
+ * ~350px-wide card, not a 1440px page, and unmasked because the box is small
+ * enough that a fade would only read as a smudge.
+ */
+@utility bp-grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(to right, var(--bp-grid-major) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bp-grid-major) 1px, transparent 1px);
+    background-size:
+        16px 16px,
+        16px 16px;
+}
+
+/*
+ * Corner registration ticks — 8px L-marks at two opposing corners. Applied to
+ * any plate (Card, and later the portrait frame and spec sheets).
+ */
+@utility bp-ticks {
+    position: relative;
+
+    &::before,
+    &::after {
+        content: "";
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border: 0 solid var(--bp-line-strong);
+        pointer-events: none;
+        transition:
+            width var(--bp-dur-base) var(--ease-bp),
+            height var(--bp-dur-base) var(--ease-bp),
+            border-color var(--bp-dur-base) var(--ease-bp);
+    }
+
+    &::before {
+        top: -1px;
+        left: -1px;
+        border-top-width: 1px;
+        border-left-width: 1px;
+    }
+
+    &::after {
+        bottom: -1px;
+        right: -1px;
+        border-bottom-width: 1px;
+        border-right-width: 1px;
+    }
+}
+
+/* Extends the ticks on hover/focus. Pair with bp-ticks on interactive plates. */
+@utility bp-ticks-live {
+    &:hover::before,
+    &:hover::after,
+    &:focus-within::before,
+    &:focus-within::after {
+        width: 14px;
+        height: 14px;
+        border-color: var(--bp-accent);
+    }
+}
+
+/* Same, driven by a parent marked `group` (for cards wrapping a link). */
+@utility bp-ticks-group {
+    .group:hover &::before,
+    .group:hover &::after,
+    .group:focus-within &::before,
+    .group:focus-within &::after {
+        width: 14px;
+        height: 14px;
+        border-color: var(--bp-accent);
+    }
+}
+
+/*
+ * The one focus treatment on the site. Applied to every interactive element,
+ * per docs/uiux.md §5.3 — accent-on-canvas measures 8.74:1 (dark) / 5.63:1
+ * (light), comfortably past the 3:1 required of a focus indicator.
+ */
+@utility bp-focus {
+    &:focus-visible {
+        outline: 2px solid var(--bp-accent);
+        outline-offset: 2px;
+    }
+}
+
+/* Mono annotation lockup: eyebrows, measure labels, spec keys, ⌘K hints. */
+@utility bp-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* Standard vertical rhythm for a top-level section. */
+@utility bp-section-y {
+    padding-block: var(--bp-section-y);
+}
+
+@utility bp-section-y-tight {
+    padding-block: var(--bp-section-y-tight);
+}
+
+/* --- Layering utilities. Use these instead of numeric z-* anywhere. ------- */
+@utility z-content {
+    z-index: var(--bp-z-content);
+}
+@utility z-sticky {
+    z-index: var(--bp-z-sticky);
+}
+@utility z-nav {
+    z-index: var(--bp-z-nav);
+}
+@utility z-overlay {
+    z-index: var(--bp-z-overlay);
+}
+@utility z-modal {
+    z-index: var(--bp-z-modal);
+}
+@utility z-toast {
+    z-index: var(--bp-z-toast);
+}
+
+/* --- Duration utilities (Tailwind v4 has no themeable --duration-* ns) ---- */
+@utility duration-fast {
+    transition-duration: var(--bp-dur-fast);
+}
+@utility duration-base {
+    transition-duration: var(--bp-dur-base);
+}
+@utility duration-slow {
+    transition-duration: var(--bp-dur-slow);
+}
+
+/* ============================================================================
+   ENTRANCE CHOREOGRAPHY
+   ----------------------------------------------------------------------------
+   These rules replace the Framer Motion variants that used to live in
+   lib/animations.ts. The contract is:
+
+     - A client root (components/motion/Reveal.tsx) watches itself with one
+       IntersectionObserver and sets `data-visible="true"` once.
+     - Every element beneath it carrying `data-reveal="<variant>"` transitions
+       in, offset by its own `--reveal-delay`.
+
+   The point of the split is that only the root has to be a Client Component.
+   The animated markup itself — headings, cards, lists — stays server-rendered,
+   which is what pulled six section bodies out of the client bundle.
+
+   Timings resolve to the same --bp-dur-* / --ease-bp tokens Framer read via
+   lib/animations.ts, so the choreography is unchanged; only the engine is.
+
+   Two guards on the hidden state, both deliberate:
+
+     - `scripting: enabled` — if JS never runs, `data-visible` is never set, so
+       an unguarded rule would serve a page of permanently invisible boxes. The
+       Framer version had exactly that failure mode (it server-rendered
+       `style="opacity:0"`). Here, no JS means no hidden state at all.
+     - `prefers-reduced-motion: no-preference` — a reduced-motion visitor gets
+       the finished layout outright rather than an instant snap when the
+       observer happens to fire. This supersedes the MotionConfig policy the
+       removed provider in lib/motion used to apply.
+   ========================================================================== */
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    [data-reveal] {
+        opacity: 0;
+        transition:
+            opacity var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms),
+            translate var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    /*
+     * fadeInUp. Note this is a translate, so it is only for elements that lay
+     * out in CSS pixels -- inside an SVG, `translate` moves by user units and
+     * 20 of those on a 360-wide viewBox is an enormous jump. SVG children use
+     * "fade" instead.
+     */
+    [data-reveal="up"] {
+        translate: 0 20px;
+    }
+
+    /*
+     * `data-reveal="fade"` deliberately has no rule of its own: opacity is
+     * already all the shared declaration above does. It exists as a name so
+     * callers can say "fade" instead of leaving a bare `data-reveal` and
+     * having the next reader wonder whether a variant was forgotten.
+     */
+
+    /*
+     * wordWipe — a clip reveal rather than a fade, so the hero headline reads
+     * as being drawn on. Runs at --bp-dur-slow like the variant it replaces.
+     */
+    [data-reveal="wipe"] {
+        translate: 0 0.35em;
+        clip-path: inset(0 100% 0 0);
+        transition:
+            opacity var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms),
+            translate var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms),
+            clip-path var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    /*
+     * SVG self-draw. The path must also carry the native `pathLength="1"`
+     * attribute, which normalises its geometry so a single dasharray works for
+     * every path regardless of real length — the same normalisation Framer did
+     * for us when animating `pathLength`.
+     */
+    [data-reveal="draw"] {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        transition:
+            opacity var(--bp-dur-fast) var(--ease-bp) var(--reveal-delay, 0ms),
+            stroke-dashoffset var(--bp-dur-draw) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    [data-visible="true"] [data-reveal],
+    [data-reveal][data-visible="true"] {
+        opacity: 1;
+        translate: none;
+    }
+
+    [data-visible="true"] [data-reveal="wipe"] {
+        clip-path: inset(0 0% 0 0);
+    }
+
+    [data-visible="true"] [data-reveal="draw"] {
+        stroke-dashoffset: 0;
+    }
+
+    /*
+     * Above-the-fold entrance, with no JS in the path.
+     *
+     * `<Reveal immediate>` marks itself visible on the server, so its children
+     * resolve to the finished state on the very first style pass — which is why
+     * they used to sit at opacity 0 until hydration flipped the attribute, and
+     * why Lighthouse measured the hero paragraph's LCP a full second after FCP.
+     * `@starting-style` supplies the "before" state that the transition needs
+     * without anything having to run first: the element paints hidden, then
+     * eases in from parse time. The `--reveal-delay` stagger still applies, so
+     * the choreography is identical — only its trigger moved off the main
+     * thread.
+     *
+     * This affects nothing scroll-driven. `@starting-style` is consulted only
+     * at an element's first style resolution, and an observer-driven root has
+     * no `data-visible` then; when it gains one later, the "before" state is
+     * its own previous computed style, exactly as before.
+     *
+     * Same mechanism as .bp-nav-panel below, which already relies on it.
+     */
+    @starting-style {
+        [data-visible="true"] [data-reveal],
+        [data-reveal][data-visible="true"] {
+            opacity: 0;
+        }
+
+        [data-visible="true"] [data-reveal="up"],
+        [data-reveal="up"][data-visible="true"] {
+            translate: 0 20px;
+        }
+
+        [data-visible="true"] [data-reveal="wipe"] {
+            translate: 0 0.35em;
+            clip-path: inset(0 100% 0 0);
+        }
+
+        [data-visible="true"] [data-reveal="draw"] {
+            stroke-dashoffset: 1;
+        }
+    }
+}
+
+/*
+ * Page transitions (docs/uiux.md §3.3), applied by app/template.tsx and
+ * app/projects/template.tsx — both remount their subtree on a route change,
+ * which is what restarts this animation.
+ *
+ * `backwards` rather than `both`: the entry state has to apply before the first
+ * frame or the page flashes in at full opacity and then animates, but holding
+ * the end state would leave a `translate` on a wrapper around every page — and
+ * a non-initial `translate` establishes a containing block, which would silently
+ * reparent any `position: fixed` descendant for the rest of the session.
+ *
+ * Not guarded on `scripting: enabled`, unlike the entrance choreography: this
+ * is a keyframe animation, so it runs and finishes on its own. There is no
+ * hidden state for a missing observer to strand.
+ */
+.bp-page-enter {
+    animation: bp-page-enter var(--bp-dur-base) var(--ease-bp) backwards;
+}
+
+@keyframes bp-page-enter {
+    from {
+        opacity: 0;
+        translate: 0 8px;
+    }
+}
+
+/*
+ * Magnetic controls (docs/uiux.md §3.3). hooks/useMagnetic.ts writes the offset
+ * on every pointer frame; this is what makes it a settle rather than a snap,
+ * both while following the cursor and on the way back to rest.
+ *
+ * `--bp-dur-fast` is short enough that the element still reads as tracking the
+ * pointer rather than trailing it. The hook removes itself entirely under
+ * reduced motion, so this rule has nothing to act on there.
+ */
+.bp-magnetic {
+    transition: translate var(--bp-dur-fast) var(--ease-bp);
+}
+
+/*
+ * Timeline: the current role's node (docs/uiux.md §4.7).
+ *
+ * §3.4 permits exactly one infinite loop on the site — the caret in the
+ * command-palette hint — so this is a single settle rather than the pulse the
+ * plan sketches: one ring expands out of the dot and is gone. It is keyed off
+ * the same `data-visible` the Reveal root sets, so it plays when the section
+ * arrives rather than silently off-screen on load, and it lives inside the
+ * no-preference query so a reduced-motion visitor gets the static dot only.
+ */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .bp-node-live {
+        position: relative;
+    }
+
+    [data-visible="true"] .bp-node-live::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: 9999px;
+        border: 1px solid var(--bp-success);
+        animation: bp-node-settle var(--bp-dur-slow) var(--ease-bp) 1 both;
+    }
+}
+
+@keyframes bp-node-settle {
+    from {
+        opacity: 0.7;
+        scale: 1;
+    }
+    to {
+        opacity: 0;
+        scale: 2.6;
+    }
+}
+
+/*
+ * Mobile nav panel. `display` is transitioned with `allow-discrete` plus an
+ * `@starting-style` entry state, which buys a real enter AND exit animation
+ * while the closed panel stays `display: none` — so it is out of the tab order
+ * and out of the accessibility tree without any JS bookkeeping. This is what
+ * AnimatePresence was doing, minus the runtime.
+ */
+.bp-nav-panel {
+    display: none;
+    opacity: 0;
+    translate: 0 -8px;
+    transition:
+        opacity var(--bp-dur-fast) var(--ease-bp),
+        translate var(--bp-dur-fast) var(--ease-bp),
+        display var(--bp-dur-fast) allow-discrete;
+}
+
+.bp-nav-panel[data-open="true"] {
+    display: block;
+    opacity: 1;
+    translate: none;
+}
+
+@starting-style {
+    .bp-nav-panel[data-open="true"] {
+        opacity: 0;
+        translate: 0 -8px;
+    }
+}
+
+/*
+ * Command palette (docs/uiux.md §5.1). Same display + allow-discrete
+ * mechanism as the nav panel above, and for the same reason: closed means
+ * `display: none`, so the panel is out of the tab order and out of the
+ * accessibility tree between openings, while both the enter and the exit still
+ * animate. The backdrop and the plate move on separate curves so the plate
+ * reads as settling onto a dimmed page rather than the whole thing fading.
+ *
+ * `z-modal` is applied as a utility on the element, not here, so the layering
+ * scale stays the one place any stacking decision is recorded.
+ */
+.bp-palette {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1rem;
+    padding-block-start: clamp(3rem, 12vh, 7rem);
+    background: color-mix(in srgb, var(--bp-void) 74%, transparent);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    transition:
+        opacity var(--bp-dur-fast) var(--ease-bp),
+        display var(--bp-dur-fast) allow-discrete;
+}
+
+.bp-palette[data-open="true"] {
+    display: flex;
+    opacity: 1;
+}
+
+.bp-palette-panel {
+    width: 100%;
+    max-width: 40rem;
+    opacity: 0;
+    translate: 0 -10px;
+    scale: 0.985;
+    transition:
+        opacity var(--bp-dur-base) var(--ease-bp),
+        translate var(--bp-dur-base) var(--ease-bp),
+        scale var(--bp-dur-base) var(--ease-bp);
+}
+
+.bp-palette[data-open="true"] .bp-palette-panel {
+    opacity: 1;
+    translate: none;
+    scale: 1;
+}
+
+@starting-style {
+    .bp-palette[data-open="true"] {
+        opacity: 0;
+    }
+
+    .bp-palette[data-open="true"] .bp-palette-panel {
+        opacity: 0;
+        translate: 0 -10px;
+        scale: 0.985;
+    }
+}
+
+/*
+ * The blinking caret in the navbar's ⌘K hint — the single infinite animation
+ * the motion budget allows (§3.4), and only because it is what makes the
+ * button read as a text field rather than a link.
+ *
+ * The global reduced-motion backstop near the top of this file clamps every
+ * animation to one 0.01ms iteration, which for a blink would land on the
+ * hidden keyframe and leave a caret that is simply missing. Hence the explicit
+ * rule below: no animation at all, and visible.
+ */
+@keyframes bp-caret-blink {
+    0%,
+    50% {
+        opacity: 1;
+    }
+    50.01%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.bp-caret {
+    animation: bp-caret-blink 1.15s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bp-caret {
+        animation: none;
+        opacity: 1;
+    }
 }

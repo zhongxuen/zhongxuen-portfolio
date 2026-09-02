@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { OgImage, ogImageSize, ogImageContentType } from "@/lib/og";
-import { projects } from "@/data/projects";
+import { getProjectBySlug } from "@/services/projectService";
 
 export const alt = "Project case study — Goh Zhong Xuen";
 export const size = ogImageSize;
@@ -12,7 +12,10 @@ export default async function Image({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const project = projects.find((item) => item.slug === slug);
+    // The merged source, not data/projects.ts directly: a project whose local
+    // entry is keyed differently than its route slug would silently render the
+    // generic fallback card here while the page itself resolved fine.
+    const project = await getProjectBySlug(slug);
 
     return new ImageResponse(
         (

@@ -1,2 +1,15 @@
+# build output
 .next
+out
+build
+dist
+
+# dependencies
 node_modules
+package-lock.json
+
+# generated
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+coverage

@@ -27,7 +27,6 @@ import {
     SiCisco,
 } from "@icons-pack/react-simple-icons";
 import { Skill } from "@/types/skill";
-import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 type IconComponent = LucideIcon | (({ size }: { size?: number }) => React.JSX.Element);
@@ -53,7 +52,7 @@ type IconComponent = LucideIcon | (({ size }: { size?: number }) => React.JSX.El
  * matching entry here, so a missing mapping degrades gracefully instead
  * of crashing.
  */
-const iconMap: Record<string, IconComponent> = {
+export const skillIconMap: Record<string, IconComponent> = {
     python: SiPython,
     java: Coffee,
     typescript: SiTypescript,
@@ -84,23 +83,60 @@ export interface SkillCardProps {
 }
 
 /**
- * Small tile for a single skill: icon + name. Meant to sit in a grid
- * grouped by Skill.category within SkillsSection — categories instead
- * of proficiency bars, per master_prompt.md.
+ * One skill tile inside a category panel (docs/uiux.md §4.4).
+ *
+ * Not built on `Card`: these sit *inside* a plate, and nesting a bordered,
+ * ticked surface in another one produces a double frame. A flat cell with its
+ * own hairline is the right register here.
+ *
+ * Featured skills take an amber corner tick rather than a border change, so the
+ * grid keeps one border weight throughout. The tick is decorative, so the same
+ * fact is also stated in text for anyone who cannot see it — colour is never
+ * the only carrier.
+ *
+ * A deliberate deviation from §4.4, which asks for "a real focus state" on the
+ * tile: a tile has no action, and giving twenty-two of them `tabindex="0"`
+ * would add twenty-two tab stops that do nothing — the standard way to make a
+ * keyboard user's life worse. The annotation reveals on `focus-within` instead,
+ * so it still appears if a focusable element is ever nested here, and the
+ * enclosing panel's ticks already respond to focus via `bp-ticks-live`.
  */
 export function SkillCard({ skill, className }: SkillCardProps) {
-    const Icon = iconMap[skill.icon] ?? Code2;
+    const Icon = skillIconMap[skill.icon] ?? Code2;
 
     return (
-        <Card
+        <div
             className={cn(
-                "flex flex-col items-center gap-2 py-5 text-center",
-                skill.featured && "border-primary/30",
-                className
+                "group/tile relative flex flex-col items-center gap-2 overflow-hidden rounded-md border border-line bg-surface-alt px-2 py-4 text-center transition-[border-color,background-color] duration-fast ease-bp hover:border-line-strong hover:bg-surface focus-within:border-line-strong",
+                className,
             )}
         >
-            <Icon size={28} />
-            <span className="text-sm font-medium text-foreground">{skill.name}</span>
-        </Card>
+            {skill.featured && (
+                <>
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-0 right-0 h-2 w-2 border-t border-r border-signal"
+                    />
+                    <span className="sr-only">Core skill.</span>
+                </>
+            )}
+
+            <Icon size={26} aria-hidden="true" />
+
+            <span className="text-sm font-medium text-ink">{skill.name}</span>
+
+            {/*
+             * Drafting annotation: the skill's machine name, the same treatment
+             * the SLUG carries on a project card. Decorative and hidden — it
+             * restates the label above it — and it reserves no height, so
+             * revealing it never reflows the grid.
+             */}
+            <span
+                aria-hidden="true"
+                className="bp-meta pointer-events-none absolute inset-x-0 bottom-1 text-[0.5625rem] text-ink-faint opacity-0 transition-opacity duration-fast ease-bp group-hover/tile:opacity-100 group-focus-within/tile:opacity-100"
+            >
+                {skill.id}
+            </span>
+        </div>
     );
 }

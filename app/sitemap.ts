@@ -1,20 +1,11 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL, SITE_LAST_MODIFIED } from "@/lib/constants";
-import { projects } from "@/data/projects";
-import { getPortfolioRepos } from "@/services/githubService";
-import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
+import { getProjects } from "@/services/projectService";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const repos = await getPortfolioRepos();
-    const enrichedProjects = mergeProjectsWithRepos(projects, repos);
-
-    // mergeProjectsWithRepos appends GitHub-only entries for repos with no
-    // matching local project (see adapters/githubProjectAdapter.ts). Those
-    // have no narrative content, so keep them out of the sitemap.
-    const localSlugs = new Set(projects.map((project) => project.slug));
-    const sitemapProjects = enrichedProjects.filter((project) =>
-        localSlugs.has(project.slug)
-    );
+    // getProjects() is the same source /projects/[slug] prerenders from, so
+    // the sitemap can never list a slug the build didn't generate.
+    const sitemapProjects = await getProjects();
 
     return [
         {

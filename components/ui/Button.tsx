@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, forwardRef } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "link";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonBaseProps {
@@ -21,24 +21,34 @@ interface ButtonAsLinkProps extends ButtonBaseProps {
     href: string;
     external?: boolean;
     children?: React.ReactNode;
+    "aria-label"?: string;
+    download?: boolean | string;
 }
 
 export type ButtonProps = ButtonAsButtonProps | ButtonAsLinkProps;
 
 const baseStyles =
-    "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+    "bp-focus inline-flex items-center justify-center gap-2 rounded-sm font-medium tracking-wide transition-[background-color,border-color,color,box-shadow] duration-fast ease-bp disabled:pointer-events-none disabled:opacity-50";
 
+/**
+ * `link` is the demoted-action variant (docs/uiux.md §4.2): a mono text link
+ * used where a third button would flatten the CTA hierarchy. It opts out of
+ * the size scale's fixed height on purpose.
+ */
 const variantStyles: Record<ButtonVariant, string> = {
-    primary: "bg-primary text-white hover:bg-primary/90",
-    secondary: "bg-secondary text-background hover:bg-secondary/90",
+    primary:
+        "bg-accent text-accent-ink shadow-plate hover:bg-accent-deep active:bg-accent-deep",
+    secondary:
+        "border border-line-strong bg-surface-alt text-ink hover:border-accent hover:text-accent",
     outline:
-        "border border-muted/30 text-foreground hover:border-primary hover:text-primary",
-    ghost: "text-foreground hover:bg-card",
+        "border border-line-ui text-ink hover:border-accent hover:text-accent",
+    ghost: "text-ink-muted hover:bg-surface hover:text-ink",
+    link: "bp-meta h-auto gap-1.5 p-0 text-ink-muted underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-    sm: "h-9 px-3 text-sm",
-    md: "h-11 px-5 text-sm",
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-5 text-sm",
     lg: "h-12 px-6 text-base",
 };
 
@@ -47,10 +57,18 @@ const sizeStyles: Record<ButtonSize, string> = {
  * <Link> (internal) / <a> (external, href starting with "http" or
  * external=true) when an `href` is provided — one component, no separate
  * LinkButton, per "avoid duplicated logic."
+ *
+ * Focus is handled by the shared `bp-focus` utility so every control on the
+ * site rings identically; do not add a per-component focus style.
  */
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     ({ variant = "primary", size = "md", className, ...props }, ref) => {
-        const styles = cn(baseStyles, variantStyles[variant], sizeStyles[size], className);
+        const styles = cn(
+            baseStyles,
+            variant !== "link" && sizeStyles[size],
+            variantStyles[variant],
+            className
+        );
 
         if ("href" in props && props.href) {
             const { href, external, children, ...rest } = props;

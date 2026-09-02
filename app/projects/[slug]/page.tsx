@@ -1,34 +1,36 @@
 import type { Metadata } from "next";
-import { cache } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { Container } from "@/components/ui/Container";
-import { Card, CardDescription, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ProjectCard } from "@/components/cards/ProjectCard";
-import { projects } from "@/data/projects";
+import { CATALOGUE_CARD_SIZES, ProjectCard } from "@/components/cards/ProjectCard";
+import { ProjectVisual } from "@/components/projects/ProjectVisual";
+import { ProjectSpecSheet } from "@/components/projects/ProjectSpecSheet";
+import { ProjectCallouts } from "@/components/projects/ProjectCallouts";
+import { CredentialsPlate } from "@/components/projects/CredentialsPlate";
+import { ProjectGallery } from "@/components/projects/ProjectGallery";
+import { ProjectPager } from "@/components/projects/ProjectPager";
 import { buildMetadata } from "@/lib/metadata";
-import { buildProjectStructuredData, buildBreadcrumbStructuredData } from "@/lib/structuredData";
+import { PROJECTS_PATH } from "@/lib/projectFilters";
+import {
+    buildProjectStructuredData,
+    buildBreadcrumbStructuredData,
+    serializeJsonLd,
+} from "@/lib/structuredData";
 import { SITE_URL } from "@/lib/constants";
-import { getPortfolioRepos } from "@/services/githubService";
-import { mergeProjectsWithRepos } from "@/adapters/githubProjectAdapter";
+import { getProjects, getProjectBySlug } from "@/services/projectService";
 
-const getEnrichedProjects = cache(async () => {
-    const repos = await getPortfolioRepos();
-    return mergeProjectsWithRepos(projects, repos);
-});
-
-const getEnrichedProjectBySlug = cache(async (slug: string) => {
-    const enrichedProjects = await getEnrichedProjects();
-    return enrichedProjects.find((item) => item.slug === slug);
-});
+// Every project page comes from data/projects.ts, so the prerendered set is
+// complete. Closing the route means an unknown slug 404s from the static
+// build instead of triggering an on-demand (rate-limited) GitHub fetch.
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
-    const enrichedProjects = await getEnrichedProjects();
-    return enrichedProjects.map((project) => ({ slug: project.slug }));
+    const projects = await getProjects();
+    return projects.map((project) => ({ slug: project.slug }));
 }
 
 export async function generateMetadata({
@@ -37,44 +39,64 @@ export async function generateMetadata({
     params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
     const { slug } = await params;
-    const project = await getEnrichedProjectBySlug(slug);
+    const project = await getProjectBySlug(slug);
 
     if (!project) {
         return buildMetadata({
             title: "Project Not Found",
             description: "The requested project could not be found.",
-            path: "/projects",
+            path: PROJECTS_PATH,
         });
     }
 
+    // A case study is dated content, not a standing page: `article` lets the
+    // published/modified times below be read as the piece's own dates. Both
+    // come from GitHub via the adapter and are simply absent for a project
+    // with no matched repo.
     return buildMetadata({
         title: project.title,
         description: project.description,
         path: `/projects/${project.slug}`,
+        type: "article",
+        publishedTime: project.publishedAt,
+        modifiedTime: project.lastUpdated,
+        keywords: [project.title, ...project.technologies, "case study"],
     });
 }
 
+/**
+ * A project case study (docs/uiux.md §4.6).
+ *
+ * Three bands: a full-bleed header carrying the project's own imagery, a
+ * two-column body with a sticky spec sheet in the left rail, and the closing
+ * navigation. Everything on the page except the gallery's lightbox trigger and
+ * the credential copy buttons is server-rendered.
+ */
 export default async function ProjectDetailPage({
     params,
 }: {
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const project = await getEnrichedProjectBySlug(slug);
+    const project = await getProjectBySlug(slug);
 
     if (!project) {
         notFound();
     }
 
-    const heroDescription = project.longDescription ?? project.description;
-    const featuredImage = project.screenshots?.[0];
-    const hasImplementationNotes =
-        (project.challenges && project.challenges.length > 0) ||
-        (project.lessonsLearned && project.lessonsLearned.length > 0);
-    const hasFutureImprovements = project.futureImprovements && project.futureImprovements.length > 0;
+    const allProjects = await getProjects();
 
-    const enrichedProjects = await getEnrichedProjects();
-    const relatedProjects = enrichedProjects
+    const heroDescription = project.longDescription ?? project.description;
+    const screenshots = project.screenshots ?? [];
+
+    /*
+     * Pager order is the curated catalogue order — the same sequence
+     * getProjects() returns and /projects shows by default — so "next" means
+     * the card after this one, not a second ordering the visitor never chose.
+     */
+    const position = allProjects.findIndex((entry) => entry.slug === project.slug);
+
+    const relatedProjects = allProjects
         .filter((item) => item.slug !== project.slug)
         .sort((a, b) => {
             const overlap = (item: typeof project) =>
@@ -85,7 +107,7 @@ export default async function ProjectDetailPage({
 
     const breadcrumbItems = [
         { name: "Home", url: SITE_URL },
-        { name: "Projects", url: `${SITE_URL}/projects` },
+        { name: "Projects", url: `${SITE_URL}${PROJECTS_PATH}` },
         { name: project.title, url: `${SITE_URL}/projects/${project.slug}` },
     ];
 
@@ -94,210 +116,190 @@ export default async function ProjectDetailPage({
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(buildProjectStructuredData(project)),
+                    __html: serializeJsonLd(buildProjectStructuredData(project)),
                 }}
             />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(buildBreadcrumbStructuredData(breadcrumbItems)),
+                    __html: serializeJsonLd(buildBreadcrumbStructuredData(breadcrumbItems)),
                 }}
             />
 
-            <Container as="section" className="py-16 md:py-24">
-                <div className="mb-8">
-                    <Button href="/projects" variant="ghost" size="sm" className="mb-6">
-                        <ArrowLeft size={16} />
-                        Back to projects
-                    </Button>
+            {/*
+             * Full-bleed header. The visual is the page's LCP element, so it is
+             * preloaded — `priority` is deprecated in Next 16 in favour of
+             * `preload` (see the Version History table in
+             * node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md).
+             * A vertical scrim sits between the picture and the copy; without
+             * it the title's contrast would depend on whatever happens to be in
+             * that screenshot's top-left corner.
+             */}
+            <header className="relative isolate overflow-hidden border-b border-line">
+                <ProjectVisual
+                    project={project}
+                    sizes="100vw"
+                    preload
+                    revealOnHover={false}
+                    className="absolute inset-0 -z-10"
+                />
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-0 -z-10 bg-linear-to-t from-void via-void/92 to-void/70"
+                />
 
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
-                        <Badge variant="success">Case study</Badge>
-                        {project.featured && <Badge variant="secondary">Featured project</Badge>}
+                <Container className="flex flex-col gap-6 pt-10 pb-12 md:pt-14 md:pb-16">
+                    <Link
+                        href={PROJECTS_PATH}
+                        className="bp-focus bp-meta inline-flex w-fit items-center gap-2 text-ink-muted transition-colors duration-fast ease-bp hover:text-accent"
+                    >
+                        <ArrowLeft size={14} aria-hidden="true" />
+                        All projects
+                    </Link>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className="tracking-widest uppercase">
+                            Case study
+                        </Badge>
+                        {project.featured && (
+                            <Badge variant="signal" className="tracking-widest uppercase">
+                                Featured
+                            </Badge>
+                        )}
                     </div>
 
-                    <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
-                        <div className="space-y-6">
-                            <div className="space-y-4">
-                                <h1 className="font-heading text-4xl font-semibold text-foreground sm:text-5xl">
-                                    {project.title}
-                                </h1>
-                                <p className="max-w-3xl text-lg leading-relaxed text-muted">
-                                    {heroDescription}
-                                </p>
-                            </div>
+                    <h1 className="max-w-4xl font-display text-h2 font-bold text-balance text-ink">
+                        {project.title}
+                    </h1>
 
-                            {project.testCredentials && (
-                                <div className="max-w-3xl rounded-lg border border-muted/10 bg-muted/5 p-4 text-sm text-muted">
-                                    <p className="mb-2 font-medium text-foreground">
-                                        Test accounts (password:{" "}
-                                        <code className="rounded bg-muted/10 px-1 py-0.5 text-foreground">
-                                            {project.testCredentials.password}
-                                        </code>{" "}
-                                        for all):
-                                    </p>
-                                    <ul className="list-disc space-y-1 pl-5">
-                                        {project.testCredentials.accounts.map((account) => (
-                                            <li key={account}>
-                                                <code className="rounded bg-muted/10 px-1 py-0.5 text-foreground">
-                                                    {account}
-                                                </code>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                    <p className="max-w-3xl text-body-lg text-pretty text-ink-muted">
+                        {heroDescription}
+                    </p>
 
-                            <div className="flex flex-wrap gap-3">
-                                {project.githubUrl && (
-                                    <Button href={project.githubUrl} external variant="primary">
-                                        <SiGithub size={16} />
-                                        View repository
-                                    </Button>
-                                )}
-                                {project.liveUrl && (
-                                    <Button href={project.liveUrl} external variant="outline">
-                                        <ExternalLink size={16} />
-                                        Live demo
-                                    </Button>
-                                )}
-                            </div>
+                    <div className="flex flex-wrap gap-3">
+                        {project.liveUrl && (
+                            <Button href={project.liveUrl} external variant="primary">
+                                <ExternalLink size={16} aria-hidden="true" />
+                                Open live demo
+                            </Button>
+                        )}
+                        {project.githubUrl && (
+                            <Button href={project.githubUrl} external variant="secondary">
+                                <SiGithub size={16} aria-hidden="true" />
+                                View repository
+                            </Button>
+                        )}
+                    </div>
+                </Container>
+            </header>
 
-                            <div className="flex flex-wrap gap-2">
-                                {project.technologies.map((tech) => (
-                                    <Badge key={tech}>{tech}</Badge>
-                                ))}
-                            </div>
+            <Container className="bp-section-y flex flex-col gap-14">
+                <div className="grid gap-10 lg:grid-cols-[19rem_1fr] lg:items-start">
+                    {/*
+                     * The rail sticks below the 64px navbar. `self-start` is
+                     * what makes it work at all — a grid item stretches to the
+                     * row's height by default, leaving nothing for `sticky` to
+                     * slide within.
+                     */}
+                    <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+                        <ProjectSpecSheet project={project} />
+
+                        {project.testCredentials && (
+                            <CredentialsPlate
+                                password={project.testCredentials.password}
+                                accounts={project.testCredentials.accounts}
+                                title={project.title}
+                            />
+                        )}
+                    </div>
+
+                    <div className="flex min-w-0 flex-col gap-12">
+                        <div className="flex flex-wrap gap-2">
+                            {project.technologies.map((tech) => (
+                                <Badge key={tech}>{tech}</Badge>
+                            ))}
                         </div>
 
-                        <Card className="space-y-4">
-                            <CardTitle>Project snapshot</CardTitle>
-                            <CardDescription>
-                                A focused overview of the stack, delivery goals, and implementation scope for this project.
-                            </CardDescription>
-                            <ul className="space-y-3 text-sm text-muted">
-                                {project.githubUrl && (
-                                    <li>
-                                        <span className="font-medium text-foreground">Repository:</span>{" "}
-                                        <a
-                                            href={project.githubUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary transition-colors hover:text-primary/80"
-                                        >
-                                            {project.githubUrl}
-                                        </a>
-                                    </li>
-                                )}
-                                <li>
-                                    <span className="font-medium text-foreground">Stack:</span>{" "}
-                                    {project.technologies.join(", ")}
-                                </li>
-                                <li>
-                                    <span className="font-medium text-foreground">Visibility:</span>{" "}
-                                    {project.featured ? "Featured project" : "Portfolio highlight"}
-                                </li>
-                            </ul>
-                        </Card>
+                        {project.keyFeatures && project.keyFeatures.length > 0 && (
+                            <ProjectCallouts
+                                title="What I built"
+                                headingId="features-heading"
+                                description="The core functionality and user experience delivered in this work."
+                                items={project.keyFeatures}
+                            />
+                        )}
+
+                        {project.challenges && project.challenges.length > 0 && (
+                            <ProjectCallouts
+                                title="Challenges"
+                                headingId="challenges-heading"
+                                description="Constraints and trade-offs that shaped the build."
+                                items={project.challenges}
+                            />
+                        )}
+
+                        {project.lessonsLearned && project.lessonsLearned.length > 0 && (
+                            <ProjectCallouts
+                                title="Lessons learned"
+                                headingId="lessons-heading"
+                                items={project.lessonsLearned}
+                            />
+                        )}
+
+                        {project.futureImprovements && project.futureImprovements.length > 0 && (
+                            <ProjectCallouts
+                                title="Future direction"
+                                headingId="future-heading"
+                                description="Extensions that would take this further."
+                                items={project.futureImprovements}
+                            />
+                        )}
+
+                        {screenshots.length > 0 && (
+                            <section
+                                aria-labelledby="gallery-heading"
+                                className="flex flex-col gap-5"
+                            >
+                                <h2
+                                    id="gallery-heading"
+                                    className="font-display text-h3 font-medium text-ink"
+                                >
+                                    Screens
+                                </h2>
+                                <ProjectGallery images={screenshots} title={project.title} />
+                            </section>
+                        )}
                     </div>
                 </div>
 
-                <div
-                    className={`grid gap-6 ${hasImplementationNotes ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-1"}`}
-                >
-                    <Card className="space-y-4">
-                        <CardTitle>What I built</CardTitle>
-                        <CardDescription>
-                            The core functionality and user experience delivered in this work.
-                        </CardDescription>
-                        <ul className="list-disc space-y-2 pl-5 text-sm text-muted">
-                            {project.keyFeatures?.map((feature) => (
-                                <li key={feature}>{feature}</li>
-                            ))}
-                        </ul>
-                    </Card>
-
-                    {hasImplementationNotes && (
-                        <Card className="space-y-4">
-                            <CardTitle>Implementation notes</CardTitle>
-                            <CardDescription>
-                                A brief look at the constraints, trade-offs, and lessons that shaped the build.
-                            </CardDescription>
-                            <div className="space-y-4 text-sm text-muted">
-                                {project.challenges && project.challenges.length > 0 && (
-                                    <div>
-                                        <h3 className="mb-2 font-medium text-foreground">Challenges</h3>
-                                        <ul className="list-disc space-y-1 pl-5">
-                                            {project.challenges.map((challenge) => (
-                                                <li key={challenge}>{challenge}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {project.lessonsLearned && project.lessonsLearned.length > 0 && (
-                                    <div>
-                                        <h3 className="mb-2 font-medium text-foreground">Lessons learned</h3>
-                                        <ul className="list-disc space-y-1 pl-5">
-                                            {project.lessonsLearned.map((lesson) => (
-                                                <li key={lesson}>{lesson}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </Card>
-                    )}
-                </div>
-
-                {(featuredImage || hasFutureImprovements) && (
-                    <div
-                        className={`mt-8 grid gap-6 ${featuredImage && hasFutureImprovements ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-1"}`}
-                    >
-                        {featuredImage && (
-                            <Card className="space-y-4">
-                                <CardTitle>Project visuals</CardTitle>
-                                <CardDescription>
-                                    A preview of the interface for this project.
-                                </CardDescription>
-                                <div className="relative h-64 w-full overflow-hidden rounded-lg border border-muted/10">
-                                    <Image
-                                        src={featuredImage}
-                                        alt={`${project.title} interface showing ${project.technologies.join(", ")}`}
-                                        fill
-                                        className="object-cover"
-                                        sizes="(min-width: 1024px) 50vw, 100vw"
-                                    />
-                                </div>
-                            </Card>
-                        )}
-
-                        {hasFutureImprovements && (
-                            <Card className="space-y-4">
-                                <CardTitle>Future direction</CardTitle>
-                                <CardDescription>
-                                    Potential improvements or extensions that could expand this project further.
-                                </CardDescription>
-                                <ul className="list-disc space-y-2 pl-5 text-sm text-muted">
-                                    {project.futureImprovements?.map((item) => (
-                                        <li key={item}>{item}</li>
-                                    ))}
-                                </ul>
-                            </Card>
-                        )}
-                    </div>
-                )}
+                <ProjectPager
+                    previous={position > 0 ? allProjects[position - 1] : undefined}
+                    next={
+                        position >= 0 && position < allProjects.length - 1
+                            ? allProjects[position + 1]
+                            : undefined
+                    }
+                />
 
                 {relatedProjects.length > 0 && (
-                    <div className="mt-8">
-                        <h2 className="mb-6 font-heading text-2xl font-semibold text-foreground">
+                    <section aria-labelledby="related-heading" className="flex flex-col gap-6">
+                        <h2
+                            id="related-heading"
+                            className="font-display text-h3 font-medium text-ink"
+                        >
                             Related projects
                         </h2>
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Same breakpoints as /projects, so CATALOGUE_CARD_SIZES describes this grid too. */}
+                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {relatedProjects.map((relatedProject) => (
-                                <ProjectCard key={relatedProject.slug} project={relatedProject} />
+                                <ProjectCard
+                                    key={relatedProject.slug}
+                                    project={relatedProject}
+                                    sizes={CATALOGUE_CARD_SIZES}
+                                />
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
             </Container>
         </>

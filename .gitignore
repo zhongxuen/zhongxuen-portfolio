@@ -52,3 +52,7 @@ progress.md
 project-tree.txt
 .vercel
 .env*
+
+# ...but the documented, secret-free template is committed on purpose.
+# Must stay after every .env* rule above, or the negation is overridden.
+!.env.example

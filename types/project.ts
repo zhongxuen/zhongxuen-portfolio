@@ -26,11 +26,19 @@ export interface Project {
         accounts: string[];
     };
 
+    /**
+     * The part played on this project, e.g. "Solo build" or "Backend, 4-person
+     * team". Rendered as the ROLE row of the detail page's spec sheet
+     * (docs/uiux.md §4.6); the row is omitted entirely when this is absent, so
+     * leave it unset rather than guessing at one.
+     */
+    role?: string;
+
     /** Technologies/stack used (e.g. ["Next.js", "TypeScript", "Tailwind CSS"]) */
     technologies: string[];
 
-    /** GitHub repository URL */
-    githubUrl: string;
+    /** GitHub repository URL; omitted for projects with no public repo */
+    githubUrl?: string;
 
     /** Optional GitHub repository name used for live repo matching */
     githubRepo?: string;
@@ -69,4 +77,7 @@ export interface Project {
         
     /** ISO timestamp of last repository update */
     lastUpdated?: string;
+
+    /** ISO timestamp of repository creation, used as the case study's published date */
+    publishedAt?: string;
 }

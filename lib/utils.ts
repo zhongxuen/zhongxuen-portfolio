@@ -86,3 +86,24 @@ export function sortByStartDateDesc<T extends { startDate: string }>(entries: T[
         (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
     );
 }
+/**
+ * Turns a display phone number into a dialable `tel:` URI.
+ *
+ * AUTHOR.phone is written for humans ("+60 10-772 2127"); RFC 3966 wants the
+ * digits and an optional leading "+" and nothing else, and a phone link that
+ * still carries spaces and dashes is silently ignored by some dialers. The "+"
+ * is preserved only in the leading position, because it means "international
+ * prefix" there and nothing anywhere else.
+ *
+ * Returns undefined when there is nothing dialable left, so callers can render
+ * plain text rather than a dead link.
+ */
+export function toTelHref(phone: string): string | undefined {
+    const digits = phone.replace(/[^\d]/g, "");
+
+    if (!digits) {
+        return undefined;
+    }
+
+    return `tel:${phone.trimStart().startsWith("+") ? "+" : ""}${digits}`;
+}
