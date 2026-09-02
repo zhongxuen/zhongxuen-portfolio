@@ -24,6 +24,12 @@ export interface ProjectVisualProps {
      * Off for the detail header, which has no hover state to speak of.
      */
     revealOnHover?: boolean;
+    /**
+     * Push the artwork in slightly while the enclosing `group/card` is
+     * hovered. Applied to the fill layer rather than to the box, so the
+     * reserved aspect ratio — and therefore the card's layout — never moves.
+     */
+    zoomOnHover?: boolean;
     className?: string;
 }
 
@@ -44,9 +50,21 @@ export function ProjectVisual({
     sizes,
     preload = false,
     revealOnHover = true,
+    zoomOnHover = false,
     className,
 }: ProjectVisualProps) {
     const screenshot = project.screenshots?.[0];
+
+    /*
+     * Shared by both artwork paths so a screenshot card and a generated-plate
+     * card move identically — the point of the plate is that a grid of mixed
+     * cards reads as one system, and a zoom that only half of them did would
+     * undo that at the first hover.
+     */
+    const artwork = cn(
+        zoomOnHover &&
+            "transition-transform duration-slow ease-bp group-hover/card:scale-105 group-focus-within/card:scale-105",
+    );
 
     return (
         <div className={cn("relative overflow-hidden bg-surface-alt", className)}>
@@ -57,10 +75,10 @@ export function ProjectVisual({
                     fill
                     sizes={sizes}
                     preload={preload}
-                    className="object-cover object-top"
+                    className={cn("object-cover object-top", artwork)}
                 />
             ) : (
-                <BlueprintPlate slug={project.slug} className="absolute inset-0" />
+                <BlueprintPlate slug={project.slug} className={cn("absolute inset-0", artwork)} />
             )}
 
             {/*

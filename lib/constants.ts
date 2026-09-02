@@ -14,9 +14,14 @@ export const AUTHOR = {
      * Availability signal rendered as the navbar pill and in the footer
      * (docs/uiux.md §4.1). Deliberately a one-line edit: set `open` to false
      * and every surface that reads it stops claiming availability.
+     *
+     * Off since September 2026 — the internship in data/experience.ts is
+     * running, so a pill reading "available" would contradict the timeline two
+     * screens below it. Flip `open` back to true when the placement ends and
+     * set `label` to whatever is true then.
      */
     availability: {
-        open: true,
+        open: false,
         label: "Available for internship",
     },
 };
@@ -41,8 +46,7 @@ export const SITE_DESCRIPTION =
     "Software Engineering student at Asia Pacific University building full-stack applications, UI/UX solutions, and modern web technologies.";
 
 /** SEO title for the homepage `<title>` tag — distinct from SITE_NAME, front-loads role/keywords for SERP CTR. Keep under ~60 chars. */
-export const HOME_TITLE =
-    "Goh Zhong Xuen — Software Engineer | Full-Stack Portfolio";
+export const HOME_TITLE = "Goh Zhong Xuen — Software Engineer | Full-Stack Portfolio";
 
 /**
  * Meta description for the homepage only. Deliberately different from
@@ -90,22 +94,16 @@ function resolveSiteUrl(): string {
           ? `https://${stripTrailingSlash(vercelHost)}`
           : LOCAL_SITE_URL;
 
-    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(
-        resolved
-    );
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(resolved);
 
-    if (
-        isLocal &&
-        process.env.NODE_ENV === "production" &&
-        typeof window === "undefined"
-    ) {
+    if (isLocal && process.env.NODE_ENV === "production" && typeof window === "undefined") {
         throw new Error(
             `Refusing to build: the site URL resolved to ${resolved}. ` +
                 "Every canonical URL, OG url, JSON-LD @id and sitemap entry " +
                 "would point at a local machine. Set NEXT_PUBLIC_SITE_URL to " +
                 "the public origin (e.g. https://example.com) — note that a " +
                 "localhost value in .env.local is picked up by `next build` " +
-                "too, so override it for production builds."
+                "too, so override it for production builds.",
         );
     }
 
@@ -121,4 +119,4 @@ export const SITE_URL = resolveSiteUrl();
  * meaningfully — do not replace with `new Date()`, which regenerates a
  * fresh "modified today" timestamp on every build and misleads crawlers.
  */
-export const SITE_LAST_MODIFIED = "2026-09-01";
+export const SITE_LAST_MODIFIED = "2026-09-02";

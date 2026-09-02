@@ -308,13 +308,24 @@ samp {
 }
 
 /*
- * prefers-reduced-motion backstop, and the site's only motion policy — there is
- * no animation runtime left to configure (docs/uiux.md §11.1.1). The entrance
- * system scopes its own hidden state to `no-preference` further down, so this
- * exists to catch everything written since: CSS transitions, keyframes, and the
- * smooth scroll-behavior declared above (disabling that is the correct outcome,
- * not a side effect). lib/motion.ts covers the handful of effects that have to
- * ask in JS.
+ * prefers-reduced-motion backstop. There is no animation runtime to configure
+ * (docs/uiux.md §11.1 item 4), so the policy is enforced here and in the
+ * `no-preference` queries further down rather than by a provider at the root of
+ * the tree.
+ *
+ * Division of labour, because both halves are needed:
+ *   - Anything whose *resting* state is the finished layout — transitions,
+ *     hovers — is caught here. Clamping it to 0.01ms is enough.
+ *   - Anything whose resting state is NOT the finished layout is scoped to
+ *     `no-preference` at its own rule instead, because clamping it would leave
+ *     it stranded at whatever its first keyframe happens to be. That covers the
+ *     entrance choreography (which would otherwise serve invisible content),
+ *     the scroll-driven block, the schematic's ambient loops, and the ⌘K caret.
+ *
+ * This also disables the smooth `scroll-behavior` declared above, which is the
+ * correct outcome rather than a side effect. lib/motion.ts and
+ * components/motion/PointerFX.tsx cover the handful of effects that have to ask
+ * in JS.
  */
 @media (prefers-reduced-motion: reduce) {
     *,
@@ -369,7 +380,12 @@ samp {
  */
 @utility bp-grid {
     position: fixed;
-    inset: 0;
+    /*
+     * Bled 128px past the top and bottom edges — one major grid square. That
+     * is exactly the travel `.bp-grid-drift` applies, so the layer can slide
+     * against the page without ever exposing an uncovered strip.
+     */
+    inset: -128px 0;
     z-index: var(--bp-z-grid);
     pointer-events: none;
     background-image:
@@ -587,6 +603,66 @@ samp {
      */
 
     /*
+     * Horizontal counterparts to "up", for split layouts where the two halves
+     * should converge on the seam between them rather than both rise. Same
+     * translate budget as "up" — a larger one on a wide element reads as the
+     * page being dragged sideways.
+     */
+    [data-reveal="left"] {
+        translate: -24px 0;
+    }
+
+    [data-reveal="right"] {
+        translate: 24px 0;
+    }
+
+    /*
+     * Plate settle — the element resolves from slightly under-scale, the way a
+     * drawing snaps into register. 0.96 is the floor: below roughly 0.9 the
+     * type inside scales visibly enough to read as a rendering fault rather
+     * than an entrance.
+     */
+    [data-reveal="scale"] {
+        scale: 0.96;
+        translate: 0 12px;
+        transition:
+            opacity var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms),
+            scale var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms),
+            translate var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    /*
+     * Focus pull. The one entrance that reads as the page resolving rather
+     * than as boxes moving, so it is reserved for the largest type on a
+     * section — the h2 in every SectionHeading — and used nowhere else. A blur
+     * is not free (it rasterises the element at each step), which is the other
+     * reason it stays on one short-lived element per section.
+     */
+    [data-reveal="blur"] {
+        filter: blur(10px);
+        translate: 0 12px;
+        transition:
+            opacity var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms),
+            filter var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms),
+            translate var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    /*
+     * Dimension rules — the hairline that runs out of a section marker, a
+     * "Now" heading or a certifications heading. Scaled from the left edge so
+     * the rule is *drawn* across the page rather than faded in, which is the
+     * same gesture as the SVG self-draw and the timeline spine. `scale` does
+     * not affect layout, so the flex row it sits in never reflows.
+     */
+    [data-reveal="rule"] {
+        transform-origin: left center;
+        scale: 0 1;
+        transition:
+            opacity var(--bp-dur-base) var(--ease-bp) var(--reveal-delay, 0ms),
+            scale var(--bp-dur-slow) var(--ease-bp) var(--reveal-delay, 0ms);
+    }
+
+    /*
      * wordWipe — a clip reveal rather than a fade, so the hero headline reads
      * as being drawn on. Runs at --bp-dur-slow like the variant it replaces.
      */
@@ -628,6 +704,27 @@ samp {
     }
 
     /*
+     * `scale` and `filter` are reset per-variant rather than in the shared
+     * rule above. Folding them in would look tidier and would silently strip
+     * any resting filter or scale a revealed element happens to carry —
+     * BlueprintFrame's `saturate-50` is exactly that shape.
+     */
+    [data-visible="true"] [data-reveal="scale"],
+    [data-reveal="scale"][data-visible="true"] {
+        scale: 1;
+    }
+
+    [data-visible="true"] [data-reveal="blur"],
+    [data-reveal="blur"][data-visible="true"] {
+        filter: none;
+    }
+
+    [data-visible="true"] [data-reveal="rule"],
+    [data-reveal="rule"][data-visible="true"] {
+        scale: 1 1;
+    }
+
+    /*
      * Above-the-fold entrance, with no JS in the path.
      *
      * `<Reveal immediate>` marks itself visible on the server, so its children
@@ -656,6 +753,33 @@ samp {
         [data-visible="true"] [data-reveal="up"],
         [data-reveal="up"][data-visible="true"] {
             translate: 0 20px;
+        }
+
+        [data-visible="true"] [data-reveal="left"],
+        [data-reveal="left"][data-visible="true"] {
+            translate: -24px 0;
+        }
+
+        [data-visible="true"] [data-reveal="right"],
+        [data-reveal="right"][data-visible="true"] {
+            translate: 24px 0;
+        }
+
+        [data-visible="true"] [data-reveal="scale"],
+        [data-reveal="scale"][data-visible="true"] {
+            scale: 0.96;
+            translate: 0 12px;
+        }
+
+        [data-visible="true"] [data-reveal="blur"],
+        [data-reveal="blur"][data-visible="true"] {
+            filter: blur(10px);
+            translate: 0 12px;
+        }
+
+        [data-visible="true"] [data-reveal="rule"],
+        [data-reveal="rule"][data-visible="true"] {
+            scale: 0 1;
         }
 
         [data-visible="true"] [data-reveal="wipe"] {
@@ -865,5 +989,342 @@ samp {
     .bp-caret {
         animation: none;
         opacity: 1;
+    }
+}
+
+/* ============================================================================
+   POINTER INTERACTION
+   ----------------------------------------------------------------------------
+   Effects that need to know where the cursor is. All of them read custom
+   properties written by components/motion/PointerFX.tsx — one document-level
+   listener for the whole page, the same shape as hooks/useMagnetic.ts, so a
+   plate that wants a spotlight stays a Server Component and gains an attribute
+   rather than a client boundary.
+
+   Contract with that component:
+     --fx-x / --fx-y   pointer position inside the element, as a percentage
+     --fx-rx / --fx-ry tilt angles, in degrees
+     data-fx-active    present while the pointer is inside the element
+
+   Everything here degrades to the resting state if the script never runs: the
+   var() fallbacks are the centre of the box and zero rotation.
+   ========================================================================== */
+
+/*
+ * Cursor spotlight. A separate child element rather than a pseudo-element,
+ * because `bp-ticks` already owns ::before and ::after on every plate this
+ * lands on.
+ *
+ * `z-index: -1` puts it above the plate's own background but beneath the
+ * static content — which only holds if the plate establishes a stacking
+ * context, hence the `isolate` on interactive Cards. Without that the negative
+ * index would drop it behind the plate entirely and it would never be seen.
+ */
+.bp-spotlight {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    background: radial-gradient(
+        16rem circle at var(--fx-x, 50%) var(--fx-y, 50%),
+        color-mix(in srgb, var(--bp-accent) 15%, transparent),
+        transparent 68%
+    );
+    transition: opacity var(--bp-dur-base) var(--ease-bp);
+}
+
+[data-fx-active="true"] > .bp-spotlight {
+    opacity: 1;
+}
+
+/*
+ * Tilt. Scoped to a fine pointer: on a touch screen `data-fx-active` is never
+ * written, but the media query also keeps the transition itself off devices
+ * that could never trigger it.
+ *
+ * `transform` rather than the `rotate` property, because two axes plus a
+ * perspective is a single function chain that `rotate` cannot express. It is
+ * applied only while active, so a resting grid of cards carries no transform
+ * and therefore no stacking context or compositing layer of its own;
+ * interpolating back to `none` on the way out is well defined.
+ */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .bp-tilt {
+        transition: transform var(--bp-dur-base) var(--ease-bp);
+    }
+
+    .bp-tilt[data-fx-active="true"] {
+        transform: perspective(900px) rotateX(var(--fx-rx, 0deg)) rotateY(var(--fx-ry, 0deg));
+    }
+}
+
+/* ============================================================================
+   HOVER MOTION
+   ----------------------------------------------------------------------------
+   Pointer-independent: these need only :hover / :focus-visible, so they are
+   plain CSS with no script behind them at all.
+   ========================================================================== */
+
+/*
+ * A band of light crossing a filled control once per hover. Reserved for
+ * primary actions — it is the loudest hover on the site, and a second element
+ * doing it at the same time turns a signal into noise.
+ *
+ * `overflow: hidden` clips the band to the control. It does not clip the focus
+ * ring: an outline is painted outside the border box and is unaffected by the
+ * element's own overflow.
+ */
+.bp-sheen {
+    position: relative;
+    overflow: hidden;
+}
+
+.bp-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        105deg,
+        transparent 42%,
+        rgb(255 255 255 / 0.3) 50%,
+        transparent 58%
+    );
+    translate: -130% 0;
+    transition: translate var(--bp-dur-slow) var(--ease-bp);
+}
+
+.bp-sheen:hover::after,
+.bp-sheen:focus-visible::after {
+    translate: 130% 0;
+}
+
+/*
+ * Directional icon nudge. The child combinator means the effect fires when the
+ * icon's own control is hovered, not when any ancestor is — a descendant
+ * selector here would nudge every arrow on the page as soon as the section
+ * around it was entered.
+ */
+.bp-nudge-x,
+.bp-nudge-y {
+    transition: translate var(--bp-dur-fast) var(--ease-bp);
+}
+
+:hover > .bp-nudge-x,
+:focus-visible > .bp-nudge-x {
+    translate: 3px 0;
+}
+
+:hover > .bp-nudge-y,
+:focus-visible > .bp-nudge-y {
+    translate: 0 3px;
+}
+
+/*
+ * The shared plate lift, for surfaces not built on `Card` — timeline nodes,
+ * skill category panels, certification tiles. `focus-within` is not decoration
+ * here: these plates contain links, and a keyboard user moving through them
+ * should get the same "this one" feedback a mouse user does.
+ */
+.bp-lift {
+    transition:
+        translate var(--bp-dur-base) var(--ease-bp),
+        border-color var(--bp-dur-base) var(--ease-bp),
+        box-shadow var(--bp-dur-base) var(--ease-bp);
+}
+
+.bp-lift:hover,
+.bp-lift:focus-within {
+    translate: 0 -4px;
+    border-color: var(--bp-line-strong);
+    box-shadow: var(--bp-shadow-lift);
+}
+
+/*
+ * Icon pop for the skill tiles. Separate from `.bp-lift` because the tile and
+ * its glyph move on different properties, and the glyph should also take the
+ * accent — which a shared rule could not express without leaking colour onto
+ * every lifted plate.
+ */
+.bp-pop {
+    transition:
+        scale var(--bp-dur-base) var(--ease-bp),
+        color var(--bp-dur-base) var(--ease-bp);
+}
+
+:hover > .bp-pop,
+:focus-within > .bp-pop {
+    scale: 1.14;
+    color: var(--bp-accent);
+}
+
+/* ============================================================================
+   SCROLL-DRIVEN MOTION
+   ----------------------------------------------------------------------------
+   Continuous effects tied to scroll position rather than fired once on entry.
+   These are the counterpart to the entrance choreography: that system answers
+   "has this arrived yet", this one answers "how far through it are we".
+
+   Everything here is progressive enhancement. `animation-timeline` has no
+   polyfill worth shipping and needs no fallback — without it the elements sit
+   at their resting state, which is the finished layout. The `@supports` test
+   wraps the timeline declarations only; the keyframes stay outside it so they
+   remain parseable everywhere.
+
+   Deliberately NOT used for entrance reveals. A view() timeline is scrubbed by
+   scroll, so scrolling back up rewinds it — content would fade out again on
+   the way back, which the observer-driven system correctly refuses to do (see
+   the `once` semantics in components/motion/Reveal.tsx).
+   ========================================================================== */
+
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        /*
+         * Depth parallax. `--bp-parallax-from` / `--bp-parallax-to` let a
+         * caller pick its own travel without a second class; the defaults suit
+         * a large decorative graphic beside body copy.
+         */
+        .bp-parallax {
+            animation: bp-parallax linear both;
+            animation-timeline: view();
+            animation-range: cover 0% cover 100%;
+        }
+
+        /*
+         * The drafting grid drifts against the page as it scrolls, which is
+         * what stops a fixed backdrop from reading as a sticker on the glass.
+         * Travel is one major grid square (128px), so the pattern lands back
+         * in register rather than at an arbitrary phase — and `.bp-grid` is
+         * inset past the viewport by that much so the drift never uncovers an
+         * edge.
+         */
+        .bp-grid-drift {
+            animation: bp-grid-drift linear both;
+            animation-timeline: scroll(root);
+        }
+
+        /*
+         * The timeline spine, drawn by scroll position instead of by one shot
+         * on entry — the section is taller than the viewport, so a one-shot
+         * draw always finished while most of the spine was still below the
+         * fold. The range stops well short of the end so the line completes at
+         * roughly the last node rather than only as the section leaves the
+         * screen entirely, which would leave a visible stub of undrawn spine
+         * for the whole scroll past it.
+         *
+         * This deliberately overrides the `[data-reveal="draw"]` transition on
+         * the same element: an animation beats a transition on the same
+         * property, so the one-shot draw is the fallback and this is the
+         * enhancement, with no coordination needed between the two.
+         *
+         * The timeline is *named*, and has to be. An anonymous `view()` measures
+         * the animated element's own principal box, and the animated element
+         * here is an SVG <path>, which has none — the timeline never becomes
+         * active, the `backwards` fill pins stroke-dashoffset at 1, and the
+         * spine is simply invisible. `--bp-spine` is declared on the enclosing
+         * <svg>, which does have a box and is exactly as tall as the line it
+         * contains. A named timeline resolves against ancestors, so each
+         * timeline section finds its own <svg> and the two on the homepage
+         * never see each other's.
+         */
+        .bp-spine-track {
+            view-timeline-name: --bp-spine;
+            view-timeline-axis: block;
+        }
+
+        .bp-spine {
+            animation: bp-draw linear both;
+            animation-timeline: --bp-spine;
+            animation-range: cover 10% cover 62%;
+        }
+    }
+}
+
+@keyframes bp-parallax {
+    from {
+        translate: 0 var(--bp-parallax-from, 32px);
+    }
+    to {
+        translate: 0 var(--bp-parallax-to, -32px);
+    }
+}
+
+@keyframes bp-grid-drift {
+    to {
+        translate: 0 -128px;
+    }
+}
+
+@keyframes bp-draw {
+    from {
+        stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ============================================================================
+   SCHEMATIC AMBIENCE
+   ----------------------------------------------------------------------------
+   Two looping effects inside the hero schematic (components/hero/
+   BlueprintSchematic.tsx), and the only looping motion on the site besides the
+   availability pill and the ⌘K caret. They are what turns the drawing from a
+   picture of a system into a picture of a system that is running — which is
+   the claim the hero is making — so they are scoped to that one graphic and
+   nothing else may use them.
+
+   Both are gated on `prefers-reduced-motion: no-preference` at the rule rather
+   than relying on the global backstop near the top of this file: that backstop
+   clamps an animation to one 0.01ms iteration, which for these would freeze a
+   packet mid-wire and strand a scan line across the drawing.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+    /*
+     * A packet travelling down a connector. The path carries pathLength="1",
+     * so the 0.22 dash is 22% of the wire regardless of its real length and
+     * one period of the pattern is exactly one traversal — which is why the
+     * offset animates across a full unit and loops seamlessly.
+     */
+    .bp-wire-pulse {
+        stroke-dasharray: 0.22 0.78;
+        animation: bp-wire-pulse 2.8s linear infinite;
+        animation-delay: var(--bp-delay, 0ms);
+    }
+
+    /* A survey line passing down the drawing, once every nine seconds. */
+    .bp-scan {
+        animation: bp-scan 9s var(--ease-bp-in-out) infinite;
+    }
+}
+
+@keyframes bp-wire-pulse {
+    from {
+        stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes bp-scan {
+    0%,
+    6% {
+        translate: 0 0;
+        opacity: 0;
+    }
+    12% {
+        opacity: 0.5;
+    }
+    84% {
+        opacity: 0.5;
+    }
+    94%,
+    100% {
+        translate: 0 362px;
+        opacity: 0;
     }
 }

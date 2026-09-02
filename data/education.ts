@@ -17,9 +17,16 @@ export const education: Education[] = [
             "Database Systems",
             "Software Engineering Principles",
         ],
-        honors: ["Distinction (Grade A) — Final CGPA 3.72 across 5 semesters"],
+        honors: ["Distinction (Grade A) — CGPA 3.72 across 5 completed semesters"],
+        /*
+         * Still "Present" as of September 2026, and deliberately so. Coursework
+         * and examinations are done; the industrial placement at TED Optimus
+         * (data/experience.ts) is the last outstanding component, so the award
+         * is not conferred until its results are in. Recording a graduation
+         * date now would be a credential claim ahead of the credential.
+         */
         description:
-            "Expected graduation: 2026. Specializing in software engineering with a focus on full-stack development.",
+            "Coursework and examinations complete. The final requirement is the industrial placement now underway; the award is conferred once its results are released.",
         featured: true,
     },
     {

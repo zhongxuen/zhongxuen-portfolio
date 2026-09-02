@@ -35,7 +35,7 @@ export interface ProjectCardProps {
 }
 
 const iconLink =
-    "bp-focus relative z-content inline-flex h-8 w-8 items-center justify-center rounded-xs border border-line bg-surface-alt text-ink-muted transition-[color,border-color] duration-fast ease-bp hover:border-accent hover:text-accent";
+    "bp-focus relative z-content inline-flex h-8 w-8 items-center justify-center rounded-xs border border-line bg-surface-alt text-ink-muted transition-[color,border-color,translate] duration-fast ease-bp hover:-translate-y-0.5 hover:border-accent hover:text-accent";
 
 /**
  * A single project, as a drafting plate (docs/uiux.md §4.5).
@@ -96,7 +96,16 @@ export function ProjectCard({
     ].filter((entry): entry is Spec => Boolean(entry));
 
     return (
-        <Card interactive className={cn("group/card flex h-full flex-col p-0", className)}>
+        <Card
+            interactive
+            /*
+             * The only plate on the site large enough to carry a tilt — a
+             * skill tile at the same few degrees reads as skewed type rather
+             * than as depth. See components/motion/PointerFX.tsx.
+             */
+            tilt
+            className={cn("group/card flex h-full flex-col p-0", className)}
+        >
             {/*
              * Aspect ratio is reserved in CSS, so the box occupies its final
              * height from the first paint whether it ends up holding an image
@@ -105,6 +114,12 @@ export function ProjectCard({
             <ProjectVisual
                 project={project}
                 sizes={sizes}
+                /*
+                 * Pushed in on hover, which the visual itself applies to the
+                 * artwork rather than to this box — the box has to keep its
+                 * exact reserved height or the card's whole layout moves.
+                 */
+                zoomOnHover
                 className={cn(
                     "w-full shrink-0 rounded-t-xl border-b border-line",
                     feature ? "aspect-[16/9] lg:aspect-[2/1]" : "aspect-[16/10]",

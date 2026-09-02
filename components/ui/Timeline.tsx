@@ -37,10 +37,17 @@ export interface TimelineProps {
  * bullets and tags — and drifting apart at the details. One node shape means
  * the two sections finally read as one history rather than two lists.
  *
- * The spine is an SVG path carrying `pathLength="1"` and `data-reveal="draw"`,
- * so it draws itself downward off the shared CSS choreography in
- * app/globals.css when the section enters view — no animation runtime, per
- * §11.1.1. `preserveAspectRatio="none"` lets a one-unit-wide viewBox stretch to
+ * The spine is an SVG path carrying `pathLength="1"`, and it draws in two
+ * ways. `data-reveal="draw"` is the floor: one shot off the shared CSS
+ * choreography in app/globals.css when the section enters view. `bp-spine` is
+ * the enhancement: where `animation-timeline` is supported the line is instead
+ * scrubbed by scroll position, so it extends *as the reader descends the
+ * history* rather than completing in six-tenths of a second while four fifths
+ * of it are still below the fold. An animation beats a transition on the same
+ * property, so the two need no coordination — the better one simply wins where
+ * it exists. Neither involves an animation runtime, per §11.1.1.
+ *
+ * `preserveAspectRatio="none"` lets a one-unit-wide viewBox stretch to
  * whatever height the list turns out to be; the dash normalisation is immune to
  * that stretch because `pathLength` measures the path as 1 regardless.
  *
@@ -61,13 +68,13 @@ export function Timeline({ nodes, className }: TimelineProps) {
                 viewBox="0 0 1 1000"
                 preserveAspectRatio="none"
                 fill="none"
-                className="pointer-events-none absolute inset-y-0 left-[7px] w-px -translate-x-1/2 lg:left-1/2"
+                className="bp-spine-track pointer-events-none absolute inset-y-0 left-[7px] w-px -translate-x-1/2 lg:left-1/2"
             >
                 <path
                     d="M0.5 0V1000"
                     pathLength={1}
                     data-reveal="draw"
-                    className="stroke-line-strong"
+                    className="bp-spine stroke-line-strong"
                     strokeWidth={1}
                 />
             </svg>
@@ -79,7 +86,15 @@ export function Timeline({ nodes, className }: TimelineProps) {
                     return (
                         <li
                             key={node.id}
-                            data-reveal="up"
+                            /*
+                             * Nodes enter from the side they land on, so the
+                             * alternation reads as two columns filling in
+                             * rather than one list sliding up past a spine.
+                             * Below lg every node sits in one column on the
+                             * left, and the horizontal variants are as correct
+                             * there — they converge on the spine either way.
+                             */
+                            data-reveal={index % 2 === 0 ? "right" : "left"}
                             style={revealDelay(stagger(index))}
                             className="relative pl-10 lg:grid lg:grid-cols-2 lg:gap-x-16 lg:pl-0"
                         >
@@ -101,11 +116,14 @@ export function Timeline({ nodes, className }: TimelineProps) {
                             </span>
 
                             <div
+                                data-fx="spotlight"
                                 className={cn(
-                                    "bp-ticks bp-ticks-live flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 md:p-6",
+                                    "bp-ticks bp-ticks-live bp-lift isolate flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 md:p-6",
                                     index % 2 === 0 ? "lg:col-start-1" : "lg:col-start-2",
                                 )}
                             >
+                                <span aria-hidden="true" className="bp-spotlight" />
+
                                 <div className="flex flex-col gap-1.5">
                                     <p className="bp-meta flex items-center gap-2 text-ink-muted">
                                         {node.period}

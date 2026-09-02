@@ -15,6 +15,7 @@ import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import { THEME_COLORS, THEME_SCRIPT } from "@/lib/theme";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { Navbar } from "@/components/layout/Navbar";
+import { PointerFX } from "@/components/motion/PointerFX";
 import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
@@ -133,8 +134,20 @@ export default function RootLayout({
                     Skip to content
                 </a>
 
-                {/* Decorative drafting grid — chrome only. */}
-                <div className="bp-grid" aria-hidden="true" />
+                {/*
+                 * Decorative drafting grid — chrome only. `bp-grid-drift` is
+                 * scroll-driven and does nothing at all where
+                 * `animation-timeline` is unsupported, so the layer is static
+                 * there rather than broken.
+                 */}
+                <div className="bp-grid bp-grid-drift" aria-hidden="true" />
+
+                {/*
+                 * One pointer listener for the whole page, feeding the card
+                 * spotlight and tilt. Renders nothing; see the component for
+                 * why it is global rather than a hook per card.
+                 */}
+                <PointerFX />
 
                 <ThemeProvider>
                     {/*

@@ -1,5 +1,7 @@
 import { ExternalLink } from "lucide-react";
+import { Reveal } from "@/components/motion/Reveal";
 import { certifications } from "@/data/certifications";
+import { revealDelay, stagger } from "@/lib/reveal";
 import { formatMonthYear } from "@/lib/utils";
 
 /**
@@ -16,20 +18,27 @@ export function CertificationsStrip() {
     }
 
     return (
-        <section aria-labelledby="certifications-heading" className="flex flex-col gap-4">
+        <Reveal
+            as="section"
+            aria-labelledby="certifications-heading"
+            className="flex flex-col gap-4"
+        >
             <h3 id="certifications-heading" className="bp-meta flex items-center gap-3 text-ink">
                 Certifications
                 <span
                     aria-hidden="true"
+                    data-reveal="rule"
                     className="h-px flex-1 bg-linear-to-r from-line-strong to-transparent"
                 />
             </h3>
 
             <ul className="grid gap-3 sm:grid-cols-2">
-                {certifications.map((certification) => (
+                {certifications.map((certification, index) => (
                     <li
                         key={certification.id}
-                        className="bp-ticks flex flex-col gap-1 rounded-lg border border-line bg-surface p-4"
+                        data-reveal="up"
+                        style={revealDelay(stagger(index))}
+                        className="bp-ticks bp-ticks-live bp-lift flex flex-col gap-1 rounded-lg border border-line bg-surface p-4"
                     >
                         <p className="bp-meta text-ink-muted">
                             {formatMonthYear(certification.date)}
@@ -53,6 +62,6 @@ export function CertificationsStrip() {
                     </li>
                 ))}
             </ul>
-        </section>
+        </Reveal>
     );
 }

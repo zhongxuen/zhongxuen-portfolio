@@ -138,7 +138,9 @@ export function HeroSection({ projectCount, resume }: HeroSectionProps) {
                     <Magnetic>
                         <Button href="#projects" variant="primary" size="lg">
                             View Projects
-                            <ArrowDown size={18} />
+                            {/* Nudges the way the link travels — down the page,
+                                not across it. See `.bp-nudge-y` in globals. */}
+                            <ArrowDown size={18} className="bp-nudge-y" />
                         </Button>
                     </Magnetic>
                     <Magnetic>
@@ -193,7 +195,24 @@ export function HeroSection({ projectCount, resume }: HeroSectionProps) {
                 </dl>
             </Reveal>
 
-            <Reveal immediate className="hidden justify-self-center lg:block lg:justify-self-end">
+            {/*
+             * The schematic drifts against the copy as the hero scrolls away,
+             * which is what gives the two columns a sense of depth rather than
+             * of being one flat plate. Scroll-driven and therefore inert where
+             * `animation-timeline` is unsupported; the travel is halved from
+             * the default because the graphic sits beside body copy and a full
+             * 64px of relative movement reads as the layout coming apart.
+             */}
+            <Reveal
+                immediate
+                style={
+                    {
+                        "--bp-parallax-from": "16px",
+                        "--bp-parallax-to": "-16px",
+                    } as React.CSSProperties
+                }
+                className="bp-parallax hidden justify-self-center lg:block lg:justify-self-end"
+            >
                 <BlueprintSchematic />
             </Reveal>
         </Container>

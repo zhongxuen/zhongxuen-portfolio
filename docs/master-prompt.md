@@ -58,12 +58,25 @@ The website is primarily intended for:
 Framework: Next.js (App Router)
 Language: TypeScript
 Styling: Tailwind CSS
-Animations: **none — no animation library at all** _(revised 2026-09-01, Phase 6)_.
-Framer Motion was removed during the rebuild. Entrance choreography is CSS:
-`[data-reveal]` variants in `app/globals.css` driven by one IntersectionObserver in
-`components/motion/Reveal.tsx`, with delays from `lib/reveal.ts`. Scroll progress, the
-active-nav underline, `pathLength` draws, enter/exit panels and page transitions were
-each re-solved without it. Do not reintroduce one — see `docs/uiux.md` §11.1.1.
+Animations: **no animation library — the platform is the runtime**
+_(revised 2026-09-02)_. Framer Motion was removed during the rebuild and is not coming
+back (see `docs/uiux.md` §11.1.1); what replaced it is not less motion but a different
+engine. Four layers, all CSS:
+
+1. **Entrance** — `[data-reveal]` variants in `app/globals.css`, driven by one
+   IntersectionObserver in `components/motion/Reveal.tsx`, with delays from
+   `lib/reveal.ts`.
+2. **Hover** — plain `:hover` / `:focus-visible` rules: the plate lift, the button
+   sheen, the icon nudge, the skill-tile pop.
+3. **Pointer-tracked** — card spotlight and card tilt, fed by one document listener in
+   `components/motion/PointerFX.tsx` writing custom properties. Same shape as
+   `hooks/useMagnetic.ts`: the animated plates stay Server Components.
+4. **Scroll-driven** — `animation-timeline: view()` / `scroll()` for the timeline spine,
+   the hero and detail-page parallax, and the drafting-grid drift. Pure progressive
+   enhancement behind `@supports`; where it is unsupported those elements sit still.
+
+Scroll progress, the active-nav underline, `pathLength` draws, enter/exit panels and page
+transitions were each re-solved without a library too.
 Icons: Lucide React, plus @icons-pack/react-simple-icons for brand marks
 (lucide-react v1 removed all brand icons)
 Transactional email: Resend, called over its HTTP API from a Server Action
@@ -265,29 +278,46 @@ topping out at 6rem for the hero display. Typography should emphasize readabilit
 
 ---
 
-# Animation Philosophy _(revised 2026-09-01)_
+# Animation Philosophy _(revised 2026-09-02)_
 
-Motion tier: **Confident**. Animation should enhance usability and demonstrate craft,
-without becoming a demo reel.
+Motion tier: **Expressive**. The site should feel alive under the cursor and under the
+scroll — motion is part of what it is claiming about the person who built it, not a coat
+of paint over the content. It still may not become a demo reel: every effect below has a
+job, and an effect that cannot name its job is decoration to be deleted.
 
-All timing comes from the `EASE` / `DUR` tokens in `lib/animations.ts` — no inline
-durations anywhere.
+All timing comes from the `EASE` / `DUR` tokens in `lib/animations.ts`, mirrored as
+`--bp-dur-*` / `--ease-bp` in `app/globals.css` — no inline durations anywhere.
 
 Permitted:
 
-- Scroll-linked reveals and a scroll-progress indicator
-- Staggered text and clip-path wipes
+- Scroll-triggered reveals and a scroll-progress indicator
+- Scroll-_driven_ motion via `animation-timeline` — parallax, the timeline spine drawn by
+  scroll position, the drafting grid drifting against the page. Progressive enhancement
+  behind `@supports`, never load-bearing.
+- Staggered text and clip-path wipes; a blur focus-pull, reserved for section headings
 - SVG `pathLength` draw-on animations (hero schematic, timeline spine)
-- Hover lifts and magnetic buttons (`hooks/useMagnetic.ts`), settled with an eased CSS
-  transition rather than a spring integrator — there is no animation runtime to spring with
+- Hover lifts, button sheens, icon nudges, and magnetic buttons
+  (`hooks/useMagnetic.ts`), settled with an eased CSS transition rather than a spring
+  integrator — there is no animation runtime to spring with
+- Cursor-tracked spotlight and tilt on plates, via `components/motion/PointerFX.tsx`
 - A shared active-nav underline, and page transitions via `app/template.tsx`
+- Ambient loops inside the hero schematic — packets travelling the connectors, a survey
+  line passing down the drawing — because a diagram of a running system should look like
+  one
 
 Avoid:
 
-- Anything longer than `DUR.slow` (0.6s), except the one-time hero draw
-- Scroll-jacking, scroll-scrubbed sequences, WebGL/canvas
-- Infinite loops (the ⌘K caret blink is the sole exception)
-- Properties that trigger layout — animate `transform` and `opacity` only
+- Anything longer than `DUR.slow` (0.6s), except the one-time hero draw and the ambient
+  schematic loops
+- Scroll-jacking: the page must never take the scroll away from the reader.
+  Scroll-_linked_ motion is fine; hijacking the scroll to play a sequence is not.
+- WebGL/canvas, and any animation library
+- Looping motion outside the hero schematic and the ⌘K caret
+- Properties that trigger layout. Animate `opacity`, `translate`, `scale`, `rotate`,
+  `transform`, `clip-path`, `filter` and `stroke-dashoffset` only — and keep `filter` to
+  one short-lived element at a time, since a blur rasterises at every step.
+- Reveal-on-scroll driven by a `view()` timeline. It is scrubbed, so scrolling back up
+  un-reveals the content; entrances belong to the observer, which fires once.
 
 **`prefers-reduced-motion: reduce` must produce a fully static, fully usable site.**
 Enforced entirely in CSS: the entrance rules only exist inside a

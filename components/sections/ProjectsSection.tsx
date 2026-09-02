@@ -56,7 +56,7 @@ export function ProjectsSection({ projects, totalCount }: ProjectsSectionProps) 
             <Reveal variant="up" className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <Button href={PROJECTS_PATH} variant="secondary">
                     View all projects
-                    <ArrowRight size={18} />
+                    <ArrowRight size={18} className="bp-nudge-x" />
                 </Button>
                 {remaining > 0 && (
                     <span className="bp-meta text-ink-muted">{remaining} more in the archive</span>

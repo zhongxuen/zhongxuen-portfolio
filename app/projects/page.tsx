@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Reveal } from "@/components/motion/Reveal";
+import { revealDelay, stagger } from "@/lib/reveal";
 import {
     CATALOGUE_CARD_SIZES,
     FEATURE_CARD_SIZES,
@@ -143,6 +145,9 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
             >
                 <SectionHeading
                     as="h1"
+                    /* Page title — on screen at load, so it animates from
+                       parse time rather than waiting on an observer. */
+                    immediate
                     headingId="projects-heading"
                     eyebrow="Portfolio"
                     title="Selected projects"
@@ -190,24 +195,43 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                             Results
                         </h2>
 
-                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {matches.map((project) => (
-                                <ProjectCard
+                        {/*
+                         * `immediate`, for two reasons. The grid is the first
+                         * thing below the fold-line on this route, so its LCP
+                         * candidate must not wait on hydration; and because
+                         * app/projects/template.tsx remounts the subtree on
+                         * every filter change, the cascade replays as the
+                         * results change, which is exactly the feedback a
+                         * filter should give.
+                         *
+                         * The stagger wrapper is also the grid item, so the
+                         * feature card's span classes have to live on it — on
+                         * the card itself they would apply to a box that is no
+                         * longer a child of the grid.
+                         */}
+                        <Reveal immediate className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                            {matches.map((project, index) => (
+                                <div
                                     key={project.slug}
-                                    project={project}
-                                    feature={project.slug === featureSlug}
-                                    sizes={
-                                        project.slug === featureSlug
-                                            ? FEATURE_CARD_SIZES
-                                            : CATALOGUE_CARD_SIZES
-                                    }
+                                    data-reveal="up"
+                                    style={revealDelay(stagger(index))}
                                     className={cn(
                                         project.slug === featureSlug &&
                                             "xl:col-span-2 xl:row-span-2",
                                     )}
-                                />
+                                >
+                                    <ProjectCard
+                                        project={project}
+                                        feature={project.slug === featureSlug}
+                                        sizes={
+                                            project.slug === featureSlug
+                                                ? FEATURE_CARD_SIZES
+                                                : CATALOGUE_CARD_SIZES
+                                        }
+                                    />
+                                </div>
                             ))}
-                        </div>
+                        </Reveal>
                     </section>
                 ) : (
                     <div className="flex flex-col items-start gap-4 rounded-xl border border-dashed border-line-strong bg-surface p-8">

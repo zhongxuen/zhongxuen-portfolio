@@ -1,22 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState, type ElementType, type ReactNode } from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ElementType,
+    type HTMLAttributes,
+    type ReactNode,
+} from "react";
 
 /**
  * Elements this component is allowed to render as. Deliberately a closed list
  * rather than a fully polymorphic `as` — every caller on the site is in here,
  * and the closed union keeps the prop types readable.
  */
-type RevealTag = "div" | "section" | "span" | "ul" | "dl" | "svg";
+type RevealTag = "div" | "section" | "span" | "ul" | "ol" | "dl" | "header" | "svg";
 
 /**
  * Named entrance treatments. Each maps to a `[data-reveal="..."]` rule in the
  * ENTRANCE CHOREOGRAPHY block of app/globals.css — add one there before adding
  * one here.
  */
-export type RevealVariant = "up" | "fade" | "wipe" | "draw";
+export type RevealVariant =
+    "up" | "left" | "right" | "scale" | "blur" | "rule" | "fade" | "wipe" | "draw";
 
-export interface RevealProps {
+/**
+ * Anything not consumed below is forwarded to the rendered element, so a
+ * caller can hand the wrapper an `id` or an `aria-*` attribute instead of
+ * having to nest another box around it just to carry one. `children`,
+ * `className` and the reveal attributes are the exceptions — those are this
+ * component's own, and the spread is applied before them so a stray prop
+ * cannot quietly take over the animation state.
+ */
+export interface RevealProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
     children: ReactNode;
     className?: string;
     as?: RevealTag;
@@ -74,6 +90,7 @@ export function Reveal({
     variant,
     immediate = false,
     rootMargin = "-80px",
+    ...rest
 }: RevealProps) {
     const ref = useRef<HTMLElement>(null);
     /*
@@ -120,6 +137,7 @@ export function Reveal({
 
     return (
         <Component
+            {...rest}
             ref={ref}
             className={className}
             data-reveal={variant}

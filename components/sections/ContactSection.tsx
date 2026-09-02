@@ -62,18 +62,24 @@ export function ContactSection() {
                 headingId="contact-heading"
                 eyebrow="Contact"
                 title="Let's Work Together"
-                description="I'm currently seeking internship opportunities, software engineering projects, and collaborations. Feel free to reach out through the form below or any of my contact channels."
+                description="I'm on an internship at TED Optimus through October 2026 and open to conversations about what comes after it — graduate roles, freelance work, or a project worth building. The form below reaches me directly."
             />
 
+            {/*
+             * The two columns converge on the seam between them rather than
+             * both rising: the form is the destination and the facts are the
+             * alternative to it, so they should read as arriving from opposite
+             * sides of one decision.
+             */}
             <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:items-start">
-                <Reveal variant="up">
+                <Reveal variant="left">
                     <ContactForm />
                 </Reveal>
 
                 <Reveal className="flex flex-col gap-5">
                     {CONTACT_FACTS.map(({ icon: Icon, label, value, href, copyLabel }, index) => (
-                        <div key={label} data-reveal="up" style={revealDelay(stagger(index))}>
-                            <Card className="flex items-center gap-4">
+                        <div key={label} data-reveal="right" style={revealDelay(stagger(index))}>
+                            <Card interactive className="flex items-center gap-4">
                                 <Icon
                                     size={20}
                                     aria-hidden="true"
@@ -102,8 +108,8 @@ export function ContactSection() {
                         </div>
                     ))}
 
-                    <div data-reveal="up" style={revealDelay(stagger(CONTACT_FACTS.length))}>
-                        <Card className="flex flex-col gap-4">
+                    <div data-reveal="right" style={revealDelay(stagger(CONTACT_FACTS.length))}>
+                        <Card interactive className="flex flex-col gap-4">
                             <h3 className="bp-meta text-ink-muted">Find me online</h3>
 
                             {/*
@@ -127,7 +133,7 @@ export function ContactSection() {
                                             rel="noopener noreferrer"
                                             aria-label={social.label}
                                             title={social.label}
-                                            className="bp-focus bp-ticks bp-ticks-live inline-flex h-11 w-11 items-center justify-center border border-line bg-surface-alt text-ink-muted transition-colors duration-fast ease-bp hover:border-line-strong hover:text-accent"
+                                            className="bp-focus bp-ticks bp-ticks-live inline-flex h-11 w-11 items-center justify-center border border-line bg-surface-alt text-ink-muted transition-[color,border-color,translate] duration-fast ease-bp hover:-translate-y-0.5 hover:border-line-strong hover:text-accent"
                                         >
                                             <SocialIcon
                                                 icon={social.icon}

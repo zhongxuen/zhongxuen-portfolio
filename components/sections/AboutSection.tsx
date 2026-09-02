@@ -65,7 +65,7 @@ export function AboutSection() {
             />
 
             <Reveal className="grid gap-10 md:grid-cols-[minmax(0,18rem)_1fr] md:items-start">
-                <div data-reveal="up">
+                <div data-reveal="left">
                     <BlueprintFrame
                         caption="Fig.00 — The author"
                         measure="1:1"
@@ -90,7 +90,7 @@ export function AboutSection() {
 
                 <div className="flex flex-col gap-8">
                     <p
-                        data-reveal="up"
+                        data-reveal="right"
                         style={revealDelay(stagger(0))}
                         className="text-body-lg leading-relaxed text-pretty text-ink-muted"
                     >
@@ -98,7 +98,7 @@ export function AboutSection() {
                     </p>
 
                     <dl
-                        data-reveal="up"
+                        data-reveal="right"
                         style={revealDelay(stagger(1))}
                         className="flex flex-col border-t border-line"
                     >
@@ -114,21 +114,31 @@ export function AboutSection() {
                     </dl>
 
                     <div
-                        data-reveal="up"
+                        data-reveal="scale"
                         style={revealDelay(stagger(2))}
-                        className="bp-ticks rounded-xl border border-line bg-surface p-5"
+                        data-fx="spotlight"
+                        className="bp-ticks bp-ticks-live bp-lift isolate rounded-xl border border-line bg-surface p-5"
                     >
+                        <span aria-hidden="true" className="bp-spotlight" />
+
                         <h3 className="bp-meta mb-4 flex items-center gap-3 text-accent">
                             Now
                             <span
                                 aria-hidden="true"
+                                data-reveal="rule"
+                                style={revealDelay(stagger(3))}
                                 className="h-px flex-1 bg-linear-to-r from-line-strong to-transparent"
                             />
                         </h3>
 
                         <ul className="flex flex-col gap-3">
-                            {now.map((entry) => (
-                                <li key={entry.id} className="flex flex-col gap-1">
+                            {now.map((entry, index) => (
+                                <li
+                                    key={entry.id}
+                                    data-reveal="up"
+                                    style={revealDelay(stagger(index + 4))}
+                                    className="flex flex-col gap-1"
+                                >
                                     <p className="flex items-baseline gap-3">
                                         <span className="bp-meta text-ink">{entry.label}</span>
                                         <span className="bp-meta text-ink-muted">

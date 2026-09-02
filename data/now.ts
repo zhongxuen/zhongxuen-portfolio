@@ -17,19 +17,19 @@ export const now: NowEntry[] = [
     {
         id: "ted-optimus-internship",
         label: "Interning",
-        detail: "Frontend web developer at TED Optimus, building user-facing features and reusable component libraries.",
+        detail: "Frontend web developer at TED Optimus, building user-facing features and reusable component libraries. Runs to late October 2026.",
         since: "2026-07-20",
     },
     {
         id: "portfolio-rebuild",
         label: "Building",
-        detail: "Rebuilding this site around server components and URL state, with the entrance motion moved out of JavaScript and into CSS.",
+        detail: "Rebuilding this site around server components and URL state, with the whole motion system running on CSS rather than an animation runtime.",
         since: "2026-08-07",
     },
     {
         id: "apu-diploma",
         label: "Studying",
-        detail: "Diploma in Information & Communication Technology (Software Engineering) at APU — 3.72 CGPA across five semesters.",
+        detail: "Diploma in Information & Communication Technology (Software Engineering) at APU — 3.72 CGPA across five semesters, with the industrial placement above as the final component.",
         since: "2024-01-01",
     },
 ];

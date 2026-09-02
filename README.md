@@ -11,10 +11,14 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - **Framework:** Next.js 16 (App Router) + React 19
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS v4
-- **Animations:** none — CSS only. Entrance choreography is `[data-reveal]` rules in
-  `app/globals.css` driven by one `IntersectionObserver`
-  (`components/motion/Reveal.tsx`); the hero animates straight from `@starting-style`
-  with no JavaScript at all
+- **Animations:** no library — CSS only, in four layers. Entrances are `[data-reveal]`
+  rules in `app/globals.css` driven by one `IntersectionObserver`
+  (`components/motion/Reveal.tsx`), and the hero animates straight from
+  `@starting-style` with no JavaScript at all. Hover effects are plain `:hover` rules.
+  The cursor spotlight and card tilt are fed by one document listener
+  (`components/motion/PointerFX.tsx`) writing custom properties. Parallax, the
+  scroll-drawn timeline spine and the drifting drafting grid use `animation-timeline`
+  behind `@supports`, so they are pure enhancement
 - **Icon Library:** Lucide React (UI icons) + Simple Icons via `@icons-pack/react-simple-icons` (brand/tech logos)
 - **Analytics:** `@vercel/analytics` + `@vercel/speed-insights`
 - **Testing:** Vitest
@@ -31,7 +35,8 @@ This portfolio website serves as a central hub for personal branding, featuring 
 - A Cmd/Ctrl+K command palette (`components/ui/CommandPalette.tsx`) — built in-house,
   loaded on first open — for jumping to any section or project, switching theme, copying
   the email address or downloading the resume
-- Entrance, hover and page-transition motion in CSS, fully suppressed under
+- Entrance, hover, pointer-tracked, scroll-driven and page-transition motion — all in
+  CSS, no animation library, and every layer fully suppressed under
   `prefers-reduced-motion: reduce`
 - Dynamic project detail pages with slug-based routing, loading, and not-found states
 - Technology filtering, full-text search (`?q=`) and sorting (`?sort=`) on `/projects`, all
@@ -54,7 +59,7 @@ This portfolio website serves as a central hub for personal branding, featuring 
 │   ├── forms/             # Form components
 │   ├── hero/              # Hero-specific visuals
 │   ├── layout/            # Layout components (Navbar, Footer)
-│   ├── motion/            # The single client root behind the CSS entrance system
+│   ├── motion/            # Client roots for the CSS motion system (Reveal, PointerFX)
 │   ├── projects/          # Projects-page components (filter, search, sort, gallery)
 │   ├── skills/            # Skills category filter
 │   ├── sections/          # Page section components

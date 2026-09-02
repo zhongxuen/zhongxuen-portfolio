@@ -11,9 +11,7 @@ interface ButtonBaseProps {
     className?: string;
 }
 
-interface ButtonAsButtonProps
-    extends ButtonBaseProps,
-        ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonAsButtonProps extends ButtonBaseProps, ButtonHTMLAttributes<HTMLButtonElement> {
     href?: undefined;
 }
 
@@ -28,7 +26,7 @@ interface ButtonAsLinkProps extends ButtonBaseProps {
 export type ButtonProps = ButtonAsButtonProps | ButtonAsLinkProps;
 
 const baseStyles =
-    "bp-focus inline-flex items-center justify-center gap-2 rounded-sm font-medium tracking-wide transition-[background-color,border-color,color,box-shadow] duration-fast ease-bp disabled:pointer-events-none disabled:opacity-50";
+    "bp-focus inline-flex items-center justify-center gap-2 rounded-sm font-medium tracking-wide transition-[background-color,border-color,color,box-shadow,scale] duration-fast ease-bp active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * `link` is the demoted-action variant (docs/uiux.md §4.2): a mono text link
@@ -36,12 +34,17 @@ const baseStyles =
  * the size scale's fixed height on purpose.
  */
 const variantStyles: Record<ButtonVariant, string> = {
+    /*
+     * `bp-sheen` — a band of light crossing the fill once per hover. Only the
+     * primary variant carries it: it is the loudest hover treatment on the
+     * site, and putting it on a second variant would flatten exactly the
+     * hierarchy the variants exist to express (docs/uiux.md §4.2).
+     */
     primary:
-        "bg-accent text-accent-ink shadow-plate hover:bg-accent-deep active:bg-accent-deep",
+        "bp-sheen bg-accent text-accent-ink shadow-plate hover:bg-accent-deep active:bg-accent-deep",
     secondary:
         "border border-line-strong bg-surface-alt text-ink hover:border-accent hover:text-accent",
-    outline:
-        "border border-line-ui text-ink hover:border-accent hover:text-accent",
+    outline: "border border-line-ui text-ink hover:border-accent hover:text-accent",
     ghost: "text-ink-muted hover:bg-surface hover:text-ink",
     link: "bp-meta h-auto gap-1.5 p-0 text-ink-muted underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent",
 };
@@ -67,7 +70,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
             baseStyles,
             variant !== "link" && sizeStyles[size],
             variantStyles[variant],
-            className
+            className,
         );
 
         if ("href" in props && props.href) {
@@ -107,7 +110,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
                 {children}
             </button>
         );
-    }
+    },
 );
 
 Button.displayName = "Button";

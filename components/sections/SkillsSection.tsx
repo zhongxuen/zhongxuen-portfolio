@@ -85,12 +85,12 @@ export function SkillsSection() {
                             key={category}
                             {...{ [PANEL_ATTRIBUTE]: slugify(category) }}
                             aria-labelledby={headingId}
-                            className="bp-ticks bp-ticks-live flex flex-col gap-5 rounded-xl border border-line bg-surface p-5 md:p-6"
+                            data-fx="spotlight"
+                            className="bp-ticks bp-ticks-live bp-lift isolate flex flex-col gap-5 rounded-xl border border-line bg-surface p-5 md:p-6"
                         >
-                            <h3
-                                id={headingId}
-                                className="bp-meta flex items-center gap-3 text-ink"
-                            >
+                            <span aria-hidden="true" className="bp-spotlight" />
+
+                            <h3 id={headingId} className="bp-meta flex items-center gap-3 text-ink">
                                 {category}
                                 <span aria-hidden="true" className="text-ink-faint">
                                     /

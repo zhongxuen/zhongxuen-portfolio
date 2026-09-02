@@ -13,6 +13,8 @@ import { ProjectCallouts } from "@/components/projects/ProjectCallouts";
 import { CredentialsPlate } from "@/components/projects/CredentialsPlate";
 import { ProjectGallery } from "@/components/projects/ProjectGallery";
 import { ProjectPager } from "@/components/projects/ProjectPager";
+import { Reveal } from "@/components/motion/Reveal";
+import { revealDelay, stagger } from "@/lib/reveal";
 import { buildMetadata } from "@/lib/metadata";
 import { PROJECTS_PATH } from "@/lib/projectFilters";
 import {
@@ -72,11 +74,7 @@ export async function generateMetadata({
  * navigation. Everything on the page except the gallery's lightbox trigger and
  * the credential copy buttons is server-rendered.
  */
-export default async function ProjectDetailPage({
-    params,
-}: {
-    params: Promise<{ slug: string }>;
-}) {
+export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     const project = await getProjectBySlug(slug);
 
@@ -141,7 +139,15 @@ export default async function ProjectDetailPage({
                     sizes="100vw"
                     preload
                     revealOnHover={false}
-                    className="absolute inset-0 -z-10"
+                    /*
+                     * Bled 32px past the header top and bottom, which is
+                     * exactly the travel `bp-parallax` applies — the backdrop
+                     * drifts against the title as the page scrolls without the
+                     * clip ever exposing an edge. Scroll-driven, so where
+                     * `animation-timeline` is unsupported the layer simply sits
+                     * still inside its slightly oversized box.
+                     */
+                    className="bp-parallax absolute inset-x-0 -inset-y-8 -z-10"
                 />
                 <div
                     aria-hidden="true"
@@ -149,47 +155,77 @@ export default async function ProjectDetailPage({
                 />
 
                 <Container className="flex flex-col gap-6 pt-10 pb-12 md:pt-14 md:pb-16">
-                    <Link
-                        href={PROJECTS_PATH}
-                        className="bp-focus bp-meta inline-flex w-fit items-center gap-2 text-ink-muted transition-colors duration-fast ease-bp hover:text-accent"
-                    >
-                        <ArrowLeft size={14} aria-hidden="true" />
-                        All projects
-                    </Link>
+                    {/*
+                     * `immediate` — every part of this lockup is above the
+                     * fold, including the h1 that is this route's LCP text, so
+                     * it animates from an @starting-style entry state rather
+                     * than waiting on an observer or on hydration.
+                     *
+                     * `contents` on the wrapper: the Container above is the
+                     * flex column that lays these five blocks out, and a real
+                     * box here would collapse them into one flex item.
+                     */}
+                    <Reveal immediate className="contents">
+                        <Link
+                            href={PROJECTS_PATH}
+                            data-reveal="up"
+                            style={revealDelay(stagger(0))}
+                            className="bp-focus bp-meta inline-flex w-fit items-center gap-2 text-ink-muted transition-colors duration-fast ease-bp hover:text-accent"
+                        >
+                            <ArrowLeft size={14} aria-hidden="true" />
+                            All projects
+                        </Link>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Badge variant="outline" className="tracking-widest uppercase">
-                            Case study
-                        </Badge>
-                        {project.featured && (
-                            <Badge variant="signal" className="tracking-widest uppercase">
-                                Featured
+                        <div
+                            data-reveal="up"
+                            style={revealDelay(stagger(1))}
+                            className="flex flex-wrap items-center gap-3"
+                        >
+                            <Badge variant="outline" className="tracking-widest uppercase">
+                                Case study
                             </Badge>
-                        )}
-                    </div>
+                            {project.featured && (
+                                <Badge variant="signal" className="tracking-widest uppercase">
+                                    Featured
+                                </Badge>
+                            )}
+                        </div>
 
-                    <h1 className="max-w-4xl font-display text-h2 font-bold text-balance text-ink">
-                        {project.title}
-                    </h1>
+                        <h1
+                            data-reveal="blur"
+                            style={revealDelay(stagger(2))}
+                            className="max-w-4xl font-display text-h2 font-bold text-balance text-ink"
+                        >
+                            {project.title}
+                        </h1>
 
-                    <p className="max-w-3xl text-body-lg text-pretty text-ink-muted">
-                        {heroDescription}
-                    </p>
+                        <p
+                            data-reveal="up"
+                            style={revealDelay(stagger(3))}
+                            className="max-w-3xl text-body-lg text-pretty text-ink-muted"
+                        >
+                            {heroDescription}
+                        </p>
 
-                    <div className="flex flex-wrap gap-3">
-                        {project.liveUrl && (
-                            <Button href={project.liveUrl} external variant="primary">
-                                <ExternalLink size={16} aria-hidden="true" />
-                                Open live demo
-                            </Button>
-                        )}
-                        {project.githubUrl && (
-                            <Button href={project.githubUrl} external variant="secondary">
-                                <SiGithub size={16} aria-hidden="true" />
-                                View repository
-                            </Button>
-                        )}
-                    </div>
+                        <div
+                            data-reveal="up"
+                            style={revealDelay(stagger(4))}
+                            className="flex flex-wrap gap-3"
+                        >
+                            {project.liveUrl && (
+                                <Button href={project.liveUrl} external variant="primary">
+                                    <ExternalLink size={16} aria-hidden="true" />
+                                    Open live demo
+                                </Button>
+                            )}
+                            {project.githubUrl && (
+                                <Button href={project.githubUrl} external variant="secondary">
+                                    <SiGithub size={16} aria-hidden="true" />
+                                    View repository
+                                </Button>
+                            )}
+                        </div>
+                    </Reveal>
                 </Container>
             </header>
 
@@ -201,7 +237,10 @@ export default async function ProjectDetailPage({
                      * row's height by default, leaving nothing for `sticky` to
                      * slide within.
                      */}
-                    <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+                    <Reveal
+                        variant="left"
+                        className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start"
+                    >
                         <ProjectSpecSheet project={project} />
 
                         {project.testCredentials && (
@@ -211,14 +250,14 @@ export default async function ProjectDetailPage({
                                 title={project.title}
                             />
                         )}
-                    </div>
+                    </Reveal>
 
                     <div className="flex min-w-0 flex-col gap-12">
-                        <div className="flex flex-wrap gap-2">
+                        <Reveal variant="right" className="flex flex-wrap gap-2">
                             {project.technologies.map((tech) => (
                                 <Badge key={tech}>{tech}</Badge>
                             ))}
-                        </div>
+                        </Reveal>
 
                         {project.keyFeatures && project.keyFeatures.length > 0 && (
                             <ProjectCallouts
@@ -256,30 +295,36 @@ export default async function ProjectDetailPage({
                         )}
 
                         {screenshots.length > 0 && (
-                            <section
+                            <Reveal
+                                as="section"
                                 aria-labelledby="gallery-heading"
                                 className="flex flex-col gap-5"
                             >
                                 <h2
                                     id="gallery-heading"
+                                    data-reveal="up"
                                     className="font-display text-h3 font-medium text-ink"
                                 >
                                     Screens
                                 </h2>
-                                <ProjectGallery images={screenshots} title={project.title} />
-                            </section>
+                                <div data-reveal="up" style={revealDelay(stagger(1))}>
+                                    <ProjectGallery images={screenshots} title={project.title} />
+                                </div>
+                            </Reveal>
                         )}
                     </div>
                 </div>
 
-                <ProjectPager
-                    previous={position > 0 ? allProjects[position - 1] : undefined}
-                    next={
-                        position >= 0 && position < allProjects.length - 1
-                            ? allProjects[position + 1]
-                            : undefined
-                    }
-                />
+                <Reveal variant="up">
+                    <ProjectPager
+                        previous={position > 0 ? allProjects[position - 1] : undefined}
+                        next={
+                            position >= 0 && position < allProjects.length - 1
+                                ? allProjects[position + 1]
+                                : undefined
+                        }
+                    />
+                </Reveal>
 
                 {relatedProjects.length > 0 && (
                     <section aria-labelledby="related-heading" className="flex flex-col gap-6">

@@ -107,7 +107,7 @@ export function SkillCard({ skill, className }: SkillCardProps) {
     return (
         <div
             className={cn(
-                "group/tile relative flex flex-col items-center gap-2 overflow-hidden rounded-md border border-line bg-surface-alt px-2 py-4 text-center transition-[border-color,background-color] duration-fast ease-bp hover:border-line-strong hover:bg-surface focus-within:border-line-strong",
+                "group/tile relative flex flex-col items-center gap-2 overflow-hidden rounded-md border border-line bg-surface-alt px-2 py-4 text-center transition-[border-color,background-color,translate] duration-base ease-bp hover:-translate-y-1 hover:border-line-strong hover:bg-surface focus-within:-translate-y-1 focus-within:border-line-strong",
                 className,
             )}
         >
@@ -121,7 +121,17 @@ export function SkillCard({ skill, className }: SkillCardProps) {
                 </>
             )}
 
-            <Icon size={26} aria-hidden="true" />
+            {/*
+             * `bp-pop` scales the glyph and takes it to the accent while the
+             * tile is hovered. Wrapped rather than applied to the icon itself
+             * because the icon components spread className onto an <svg> whose
+             * own `color` these tiles do not otherwise set — the span is the
+             * one element guaranteed to be the tile's direct child, which is
+             * what the rule's child combinator keys off.
+             */}
+            <span className="bp-pop">
+                <Icon size={26} aria-hidden="true" />
+            </span>
 
             <span className="text-sm font-medium text-ink">{skill.name}</span>
 

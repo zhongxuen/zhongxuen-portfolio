@@ -8,9 +8,15 @@ export const experience: Experience[] = [
         location: "Taman Maluri, Cheras, Kuala Lumpur, Malaysia",
         employmentType: "Internship",
         startDate: "2026-07-20",
-        endDate: "2026-10-23",
+        /*
+         * "Present", not the 2026-10-23 contract end. ExperienceSection derives
+         * `current` from this field alone — a fixed end date, even one in the
+         * future, is read as an ended role, which is what made the site show an
+         * internship that is still running as finished history.
+         */
+        endDate: "Present",
         description:
-            "Frontend Web Developer intern building user-facing features and reusable components, working hybrid.",
+            "Frontend Web Developer intern building user-facing features and reusable components, working hybrid. Placement runs to 23 October 2026.",
         responsibilities: [
             "Develop new user-facing features",
             "Build reusable code and libraries for future use",

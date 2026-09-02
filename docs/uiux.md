@@ -5,7 +5,7 @@
 > that are binding on anything written from here, and **§11.4** the Phase 6 verification
 > results, including the two places the measured numbers fall short of §8 and why.
 > Owner: Goh Zhong Xuen · Drafted: 2026-09-01
-> Selected direction: **D — Blueprint / Engineered** · Motion tier: **Confident** · All four feature tracks in scope.
+> Selected direction: **D — Blueprint / Engineered** · Motion tier: **Expressive** (retiered from "Confident" on 2026-09-02 — see §3) · All four feature tracks in scope.
 >
 > **Three deliberate deviations from this plan are already shipped** and are binding on
 > everything that follows — read §11.1 before writing code against §3, §4.5 or §4.8.
@@ -152,7 +152,16 @@ meta     0.8125rem   /* mono, tracking-wide, uppercase */
 
 ---
 
-## 3. Motion system — "Confident"
+## 3. Motion system — "Expressive" _(retiered 2026-09-02)_
+
+This section was written for a "Confident" tier: motion as restrained proof of
+craft. It shipped that way, and the result read as static — the entrances were
+correct and almost nothing else moved. The tier is now **Expressive**: the site
+should feel alive under the cursor and under the scroll. What did _not_ change is
+the discipline. Every effect still resolves through the `EASE`/`DUR` tokens, still
+animates compositor-friendly properties, still disappears completely under
+`prefers-reduced-motion`, and still runs without an animation library. §3.3 and
+§3.4 below are updated; the shipped inventory is §11.1 item 4.
 
 ### 3.1 Foundations
 
@@ -206,11 +215,41 @@ This also disables the existing `html { scroll-behavior: smooth }`, which is the
 | **Page transitions** | Route changes fade + 8px rise via `template.tsx`. Verify Next 16's View Transitions support in the local docs before choosing between `template.tsx` and the native API.                      |
 | **Counters**         | Hero stats count up from 0 once, on first view only.                                                                                                                                          |
 
-### 3.4 Motion budget
+Added at the 2026-09-02 retier:
 
-- Nothing exceeds `DUR.slow` except the one-time hero draw.
-- No animation blocks interaction; no scroll-jacking; no infinite loops except the caret blink in the ⌘K hint.
-- Anything animating on scroll uses `transform`/`opacity` only — no layout-triggering properties.
+| Element                | Behaviour                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Section headings**   | The whole lockup is one reveal root: marker, then the rule drawing out from it, then the h2 pulling in from a blur, then the description. Fires on every section.    |
+| **Plate spotlight**    | A soft accent radial follows the cursor across any interactive plate — cards, timeline nodes, skill panels, the NOW block.                                           |
+| **Card tilt**          | Project cards lean up to 4.5° toward the cursor. Project cards only; on a smaller plate the same rotation reads as skewed type rather than as depth.                 |
+| **Primary buttons**    | A band of light crosses the fill once per hover. Primary variant only.                                                                                               |
+| **Directional icons**  | Arrows nudge in the direction their link travels — down for `#projects`, right for "View all".                                                                       |
+| **Timeline spine**     | Drawn by scroll position rather than in one shot, so it extends as the reader descends the history. Falls back to the one-shot draw where unsupported.               |
+| **Parallax**           | The hero schematic and the project-detail header backdrop drift against the copy beside them. Both boxes are bled by exactly the travel, so no edge is ever exposed. |
+| **Drafting grid**      | The fixed backdrop drifts one major grid square against the page as it scrolls, so it stops reading as a sticker on the glass.                                       |
+| **Schematic ambience** | Packets travel down the hero schematic's connectors; a survey line passes down the drawing every nine seconds.                                                       |
+| **Timeline entry**     | Nodes enter from the side they land on, so the alternation reads as two columns filling in rather than one list sliding up.                                          |
+| **Filter results**     | `/projects` remounts on every filter change, so the results grid re-cascades — the feedback a filter should give.                                                    |
+
+### 3.4 Motion budget _(revised 2026-09-02)_
+
+- Nothing exceeds `DUR.slow` except the one-time hero draw and the ambient loops inside
+  the hero schematic.
+- No animation blocks interaction, and **no scroll-jacking** — the page never takes the
+  scroll away from the reader. Scroll-_linked_ motion is encouraged; hijacking the scroll
+  to play a sequence is not.
+- Looping motion is confined to two places: the hero schematic (travelling packets, one
+  survey line) and the ⌘K caret blink. Nothing else may loop.
+- Animate `opacity`, `translate`, `scale`, `rotate`, `transform`, `clip-path`, `filter`
+  and `stroke-dashoffset` only. Never a property that triggers layout.
+  `filter` is the expensive one — it rasterises the element at every step — so it is
+  capped at one short-lived element per section (the h2 focus pull).
+- Scroll-driven (`animation-timeline`) effects are **progressive enhancement only**.
+  They live behind `@supports`, and where unsupported the element must sit at its
+  finished resting state. Nothing load-bearing may depend on them.
+- Entrances belong to the IntersectionObserver, never to a `view()` timeline. A view
+  timeline is scrubbed, so scrolling back up would un-reveal content that had already
+  arrived.
 
 ---
 
@@ -473,7 +512,7 @@ messages.
 
 ### 11.1 Deviations from this plan that are already shipped
 
-These three are binding. They are not drift to be corrected — each was the better call
+These four are binding. They are not drift to be corrected — each was the better call
 and each supersedes the section of this document that describes it. Anything written
 from here on must follow the shipped architecture, not the original sketch.
 
@@ -499,6 +538,26 @@ from here on must follow the shipped architecture, not the original sketch.
    works for free, and `/projects` stays a Server Component. This supersedes §4.5's
    `ProjectsExplorer` with `useSearchParams`/`router.replace`. Search and sort must be
    added in the same style (see §12, P2), not by porting state into the client.
+4. **The motion tier is "Expressive", and the whole system is CSS.** _(2026-09-02.)_
+   Deviation 1 removed the library; this one is about what was built in its place, and it
+   is more motion than §3 originally specified, not less. Four layers:
+    - **Entrance** — `[data-reveal]` in `app/globals.css`, now `up` / `left` / `right` /
+      `scale` / `blur` / `rule` / `fade` / `wipe` / `draw`, driven by
+      `components/motion/Reveal.tsx`. `SectionHeading` is itself a reveal root, which is
+      why every section on the site now announces itself the same way.
+    - **Hover** — `.bp-sheen`, `.bp-lift`, `.bp-pop`, `.bp-nudge-x` / `.bp-nudge-y`. Plain
+      `:hover` / `:focus-visible`, no script.
+    - **Pointer-tracked** — `.bp-spotlight` and `.bp-tilt`, fed by one document-level
+      listener in `components/motion/PointerFX.tsx` that writes `--fx-*` properties onto
+      the single element under the cursor. Deliberately global, for the same reason
+      `hooks/useMagnetic.ts` is: the animated plates stay Server Components and gain an
+      attribute instead of a client boundary.
+    - **Scroll-driven** — `animation-timeline` behind `@supports`: the timeline spine
+      (a _named_ view timeline on the `<svg>`, because an anonymous `view()` cannot
+      measure a `<path>`), hero and detail-header parallax, and the drafting-grid drift.
+      Any new motion belongs in one of these four layers. Adding a fifth engine — a library,
+      a rAF loop, a scroll listener that writes styles — needs a reason that none of the
+      four can meet.
 
 ### 11.2 Phase status
 

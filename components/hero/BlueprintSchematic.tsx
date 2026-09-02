@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { verticalMeasurePath } from "@/components/ui/MeasureLine";
 import { revealDelay } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,14 @@ import { cn } from "@/lib/utils";
  * motion is handled entirely in app/globals.css — the hidden state is scoped
  * to `prefers-reduced-motion: no-preference`, so a reduced-motion visitor is
  * served the finished drawing with no JS involved at all.
+ *
+ * Once the drawing has finished arriving it keeps running: a packet travels
+ * down each connector, and a survey line passes across the plate every nine
+ * seconds. These are the only looping animations on the site outside the ⌘K
+ * caret, and they are the difference between a picture of a system and a
+ * picture of a system that is working — which is the claim the hero is making.
+ * Both are defined in the SCHEMATIC AMBIENCE block of app/globals.css and are
+ * scoped to `prefers-reduced-motion: no-preference` there.
  *
  * Entirely decorative — the tiers restate the layered architecture the copy
  * already describes — so the whole graphic is aria-hidden.
@@ -198,6 +207,25 @@ export function BlueprintSchematic({ className }: { className?: string }) {
                         strokeWidth={1.5}
                         strokeLinecap="square"
                     />
+                    {/*
+                     * The travelling packet is a second path laid over the
+                     * connector rather than a class on the connector itself:
+                     * that path is mid-self-draw off `data-reveal="draw"`,
+                     * which owns its stroke-dasharray, and a loop sharing the
+                     * property would fight the entrance for it.
+                     *
+                     * Staggered so the two wires do not fire in lockstep — the
+                     * offset is what makes it read as traffic rather than as a
+                     * metronome.
+                     */}
+                    <path
+                        d={link.d}
+                        pathLength={1}
+                        style={{ "--bp-delay": `${TEXT_DELAY + index * 900}ms` } as CSSProperties}
+                        className="bp-wire-pulse stroke-accent"
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                    />
                     <text
                         data-reveal="fade"
                         style={text}
@@ -270,6 +298,21 @@ export function BlueprintSchematic({ className }: { className?: string }) {
             >
                 FIG.01 — SYSTEM VIEW
             </text>
+
+            {/*
+             * Survey line. Declared last so it passes over the drawing rather
+             * than under it, and translated in the drawing's own user units —
+             * the keyframes travel 362, which is the frame's inner height.
+             */}
+            <line
+                x1={14}
+                x2={346}
+                y1={22}
+                y2={22}
+                className="bp-scan stroke-accent"
+                strokeWidth={1}
+                opacity={0}
+            />
         </svg>
     );
 }

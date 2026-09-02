@@ -19,6 +19,11 @@ const ICON_SIZE = 20;
  * The button is therefore inert but present without JS. That is the same deal
  * as the mobile menu trigger, and the underlying preference is still honoured
  * there by the `prefers-color-scheme` branch of the palette.
+ *
+ * The rotation on hover is on the button, not on the icons: only one of the
+ * three is displayed at a time and which one is a CSS decision this file
+ * cannot see, so turning the container is the only way to move whichever is
+ * actually on screen.
  */
 export function ThemeToggle({ className }: { className?: string }) {
     const { cycleMode } = useTheme();
@@ -28,7 +33,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             type="button"
             onClick={cycleMode}
             className={cn(
-                "bp-focus inline-flex items-center justify-center rounded-sm p-2 text-ink-muted transition-colors hover:bg-surface hover:text-ink",
+                "bp-focus inline-flex items-center justify-center rounded-sm p-2 text-ink-muted transition-[color,background-color,rotate] duration-base ease-bp hover:rotate-[18deg] hover:bg-surface hover:text-ink",
                 className,
             )}
         >

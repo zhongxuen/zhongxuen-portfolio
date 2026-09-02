@@ -38,8 +38,10 @@ export function CopyButton({ value, label, className }: CopyButtonProps) {
                 onClick={() => void copy(value)}
                 aria-label={`Copy ${label}`}
                 className={cn(
-                    "bp-focus inline-flex h-7 shrink-0 items-center gap-1.5 rounded-xs border border-line bg-surface-alt px-2 font-mono text-xs text-ink-muted transition-[color,border-color] duration-fast ease-bp hover:border-accent hover:text-accent",
-                    status === "copied" && "border-success/45 text-success",
+                    "bp-focus inline-flex h-7 shrink-0 items-center gap-1.5 rounded-xs border border-line bg-surface-alt px-2 font-mono text-xs text-ink-muted transition-[color,border-color,scale] duration-fast ease-bp hover:border-accent hover:text-accent active:scale-95",
+                    /* A beat of over-scale on success — the label change alone
+                       is easy to miss on a control this small. */
+                    status === "copied" && "scale-105 border-success/45 text-success",
                     status === "error" && "border-danger/45 text-danger",
                     className,
                 )}
