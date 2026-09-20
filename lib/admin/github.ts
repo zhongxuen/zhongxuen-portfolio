@@ -49,6 +49,10 @@ const DEFAULT_BRANCH = "main";
  */
 export const WRITABLE_FILES = {
     projects: "data/projects.ts",
+    experience: "data/experience.ts",
+    education: "data/education.ts",
+    skills: "data/skills.ts",
+    certifications: "data/certifications.ts",
     now: "data/now.ts",
     resumeConfig: "data/resume.ts",
     availability: "lib/constants.ts",
@@ -101,6 +105,50 @@ export function targetPath(target: WriteTarget): string {
 /** Public href for a committed screenshot, i.e. what goes in `Project.screenshots`. */
 export function screenshotHref(target: Extract<WriteTarget, { kind: "screenshot" }>): string {
     return targetPath(target).replace(/^public/, "");
+}
+
+/**
+ * The inverse of `screenshotHref`: turns a stored path back into a delete
+ * target, or null when it is not one this console could have written.
+ *
+ * **Null is the whole point.** Deletion is the one operation where a path
+ * arriving from stored data reaches the API, and the allowlist above closes
+ * traversal by making a path inexpressible — so a delete must re-derive its
+ * target through the same constructor rather than trusting the string. Anything
+ * that does not match the exact `slug-index.ext` filename the uploader produces
+ * comes back null and is skipped: a hand-placed image with a different name, a
+ * path with a directory segment in it, an extension the uploader never writes.
+ * The caller treats null as "not mine to delete", which is the safe reading in
+ * both directions.
+ */
+export function screenshotTarget(href: string): WriteTarget | null {
+    const match = /^\/images\/projects\/([a-z0-9-]+)-(\d+)\.(jpg|png|webp)$/.exec(href);
+
+    if (!match) {
+        return null;
+    }
+
+    const [, slug, rawIndex, extension] = match;
+    const target: WriteTarget = {
+        kind: "screenshot",
+        slug,
+        index: Number(rawIndex),
+        extension: extension as ScreenshotExtension,
+    };
+
+    /*
+     * Built, then round-tripped through the constructor that owns the rules.
+     * `targetPath` throws on a slug with a leading hyphen, an index outside
+     * 1..24, or an extension outside the union — and re-deriving the href proves
+     * this target names the file the caller actually meant, not a near miss.
+     */
+    try {
+        return screenshotHref(target as Extract<WriteTarget, { kind: "screenshot" }>) === href
+            ? target
+            : null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -259,6 +307,36 @@ function encodePath(path: string): string {
     return path.split("/").map(encodeURIComponent).join("/");
 }
 
+/**
+ * Lists the file names directly inside a repository directory.
+ *
+ * Only used for `public/images/projects/`, and only to answer two questions the
+ * repository can answer and the running build cannot: which screenshots exist
+ * that nothing references, and which referenced screenshots do not exist. Both
+ * are invisible from inside a deployment — `public/` is baked into the build, so
+ * a file deleted from the repo yesterday is still on disk in a deploy from last
+ * week.
+ *
+ * Returns an empty list for a missing directory rather than throwing. An empty
+ * `public/images/projects/` is a legitimate state (no screenshots yet), and the
+ * health page should report "nothing to clean up", not an error.
+ */
+export async function listDirectory(path: string, branch = DEFAULT_BRANCH): Promise<string[]> {
+    try {
+        const entries = await request<{ name: string; type: string }[]>(
+            `/repos/${OWNER}/${REPO}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`,
+        );
+
+        if (!Array.isArray(entries)) {
+            return [];
+        }
+
+        return entries.filter((entry) => entry.type === "file").map((entry) => entry.name);
+    } catch {
+        return [];
+    }
+}
+
 export interface FileWrite {
     target: WriteTarget;
     /** Text content, or raw bytes for a binary file. */
@@ -312,15 +390,26 @@ export async function commitFile({
  * the single-file path gets from its blob sha.
  */
 export async function commitFiles({
-    files,
+    files = [],
+    deletions = [],
     message,
     branch = DEFAULT_BRANCH,
 }: {
-    files: FileWrite[];
+    files?: FileWrite[];
+    /**
+     * Paths to remove in the same commit.
+     *
+     * Deletion is a tree entry whose `sha` is null, which is why it can only be
+     * expressed here and not through the Contents API path above — and why
+     * removing a screenshot and the entry that referenced it is one commit
+     * rather than two. Two commits would leave `main` in a state where
+     * data/projects.ts points at an image that has already been deleted.
+     */
+    deletions?: WriteTarget[];
     message: string;
     branch?: string;
 }): Promise<CommitResult> {
-    if (files.length === 0) {
+    if (files.length === 0 && deletions.length === 0) {
         throw new Error("commitFiles called with nothing to commit.");
     }
 
@@ -349,9 +438,22 @@ export async function commitFiles({
         }),
     );
 
+    /*
+     * A null sha on an existing path is the Git Data API's delete. The path must
+     * already be in the base tree — GitHub answers 422 otherwise, which
+     * `request()` reads as a conflict — so callers filter to paths that exist
+     * before getting here. `deleteFiles` below does exactly that.
+     */
+    const removals = deletions.map((target) => ({
+        path: targetPath(target),
+        mode: "100644" as const,
+        type: "blob" as const,
+        sha: null,
+    }));
+
     const tree = await request<{ sha: string }>(`/repos/${OWNER}/${REPO}/git/trees`, {
         method: "POST",
-        body: JSON.stringify({ base_tree: headCommit.tree.sha, tree: blobs }),
+        body: JSON.stringify({ base_tree: headCommit.tree.sha, tree: [...blobs, ...removals] }),
     });
 
     const commit = await request<{ sha: string; html_url: string }>(
@@ -368,6 +470,43 @@ export async function commitFiles({
     });
 
     return { sha: commit.sha, url: commit.html_url };
+}
+
+/**
+ * Removes files, skipping any that are not in the tree.
+ *
+ * The existence check is not defensive tidiness: GitHub answers a delete of an
+ * absent path with 422, which `request()` cannot distinguish from a genuine
+ * non-fast-forward and would report to the operator as "the repository changed
+ * since this page loaded" — a confusing lie about a file that was already gone.
+ * Filtering first means a double-click on "delete orphans" is a no-op rather
+ * than a phantom conflict.
+ *
+ * Returns null when nothing remained to delete, so the caller can say "already
+ * clean" instead of reporting an empty commit it did not make.
+ */
+export async function deleteFiles({
+    targets,
+    message,
+    branch = DEFAULT_BRANCH,
+}: {
+    targets: WriteTarget[];
+    message: string;
+    branch?: string;
+}): Promise<CommitResult | null> {
+    const present: WriteTarget[] = [];
+
+    for (const target of targets) {
+        if (await blobSha(targetPath(target), branch)) {
+            present.push(target);
+        }
+    }
+
+    if (present.length === 0) {
+        return null;
+    }
+
+    return commitFiles({ deletions: present, message, branch });
 }
 
 /** base64 for the API, which takes both text and binary that way. */
@@ -443,4 +582,7 @@ export const commitMessage = {
     resumeUpload: () => "chore(admin): replace resume.pdf",
     resumeGenerate: () => "chore(admin): regenerate resume.pdf from site data",
     settings: (what: string) => `chore(admin): update ${what}`,
+    career: (what: string) => `chore(admin): update ${what}`,
+    screenshotsDelete: (count: number) =>
+        `chore(admin): remove ${count} unreferenced screenshot${count === 1 ? "" : "s"}`,
 };

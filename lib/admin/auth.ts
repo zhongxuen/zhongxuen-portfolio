@@ -1,6 +1,7 @@
 import "server-only";
 
-import { verifyPassword, verifyUsername } from "@/lib/admin/session";
+import { readEpoch, verifyPassword, verifyUsername } from "@/lib/admin/session";
+import { verifyTotp } from "@/lib/admin/totp";
 
 /**
  * The admin console's credentials, read from the environment (docs/admin-plan.md §4.1).
@@ -26,6 +27,49 @@ export function adminPasswordHash(): string | undefined {
 
 export function sessionSecret(): string | undefined {
     return process.env.ADMIN_SESSION_SECRET;
+}
+
+/**
+ * The current session generation (§17.5).
+ *
+ * Deliberately *not* part of `isAdminConfigured()`. An unset epoch is the
+ * normal, working state — it means "never revoked" — whereas an unset password
+ * hash means there is no console. Requiring it would 404 every existing
+ * deployment on the day this shipped.
+ */
+export function sessionEpoch(): number {
+    return readEpoch(process.env.ADMIN_SESSION_EPOCH);
+}
+
+/**
+ * Whether a second factor is required at login (§17.10).
+ *
+ * Presence of the secret is the switch — there is no separate "enabled" flag to
+ * disagree with it. Like `sessionEpoch`, it is deliberately outside
+ * `isAdminConfigured()`: absent means no second factor, which is a working
+ * configuration, not a broken one.
+ */
+export function isTotpEnabled(): boolean {
+    return Boolean(process.env.ADMIN_TOTP_SECRET);
+}
+
+/**
+ * Verifies a submitted TOTP code, or returns true when no second factor is
+ * configured.
+ *
+ * The "no secret" case returns *true* rather than false on purpose: the caller
+ * asks "is this login's second factor satisfied", and on a deployment with no
+ * second factor the answer is yes. Inverting it would make an unconfigured TOTP
+ * lock everyone out, which is the failure mode an optional feature must not
+ * have. The one place that must not rely on this is the form — it asks
+ * `isTotpEnabled()` before rendering the field.
+ */
+export function verifySecondFactor(code: string): boolean {
+    if (!isTotpEnabled()) {
+        return true;
+    }
+
+    return verifyTotp(code, process.env.ADMIN_TOTP_SECRET);
 }
 
 /**
@@ -83,6 +127,29 @@ export function environmentPresence(): { key: string; present: boolean; purpose:
             key: "CONTACT_FROM_EMAIL",
             present: Boolean(process.env.CONTACT_FROM_EMAIL),
             purpose: "Sender identity for contact email. Defaults to Resend's shared sender.",
+        },
+        {
+            key: "ADMIN_SESSION_EPOCH",
+            present: Boolean(process.env.ADMIN_SESSION_EPOCH),
+            purpose:
+                "Session generation. Raising it signs every device out at once, without rotating the signing secret.",
+        },
+        {
+            key: "VERCEL_TOKEN",
+            present: Boolean(process.env.VERCEL_TOKEN),
+            purpose:
+                "Read-only deployment status. Without it a save cannot report whether its build succeeded.",
+        },
+        {
+            key: "VERCEL_PROJECT_ID",
+            present: Boolean(process.env.VERCEL_PROJECT_ID),
+            purpose: "Which project to read deployments from. Vercel does not inject this one.",
+        },
+        {
+            key: "ADMIN_TOTP_SECRET",
+            present: Boolean(process.env.ADMIN_TOTP_SECRET),
+            purpose:
+                "Base32 secret for a second factor at login. Optional; when set, a 6-digit code is required.",
         },
         {
             key: "NEXT_PUBLIC_SITE_URL",

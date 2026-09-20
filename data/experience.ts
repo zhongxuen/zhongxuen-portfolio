@@ -1,5 +1,20 @@
 import { Experience } from "@/types/experience";
 
+/**
+ * Work history — the source for components/sections/ExperienceSection.tsx and,
+ * through lib/resume/model.ts, for the generated résumé PDF.
+ *
+ * **"Present" is a value, not a placeholder.** ExperienceSection derives
+ * `current` from `endDate` alone, so a fixed end date — even one in the future —
+ * is read as an ended role. That is what once made the site show a running
+ * internship as finished history. A role that is still running carries
+ * "Present"; its real end date belongs in `description`, where it reads as
+ * information rather than as a status.
+ *
+ * WRITTEN BY THE ADMIN CONSOLE (/admin/career). The array below is re-emitted in
+ * full by lib/admin/serializeCareer.ts on every save, so a comment placed inside
+ * it will be deleted by the next one. Put notes in this header instead.
+ */
 export const experience: Experience[] = [
     {
         id: "ted-optimus-frontend-intern-2026",
@@ -8,12 +23,6 @@ export const experience: Experience[] = [
         location: "Taman Maluri, Cheras, Kuala Lumpur, Malaysia",
         employmentType: "Internship",
         startDate: "2026-07-20",
-        /*
-         * "Present", not the 2026-10-23 contract end. ExperienceSection derives
-         * `current` from this field alone — a fixed end date, even one in the
-         * future, is read as an ended role, which is what made the site show an
-         * internship that is still running as finished history.
-         */
         endDate: "Present",
         description:
             "Frontend Web Developer intern building user-facing features and reusable components, working hybrid. Placement runs to 23 October 2026.",

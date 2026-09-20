@@ -4,7 +4,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
-import { isAdminConfigured, sessionSecret } from "@/lib/admin/auth";
+import { isAdminConfigured, sessionEpoch, sessionSecret } from "@/lib/admin/auth";
 import {
     SESSION_COOKIE,
     SESSION_MAX_AGE_SECONDS,
@@ -74,7 +74,12 @@ export const verifySession = cache(async (): Promise<AdminSession> => {
 export const readSession = cache(async (): Promise<AdminSession | null> => {
     const store = await cookies();
 
-    return verifySessionToken(store.get(SESSION_COOKIE)?.value, sessionSecret());
+    return verifySessionToken(
+        store.get(SESSION_COOKIE)?.value,
+        sessionSecret(),
+        Date.now(),
+        sessionEpoch(),
+    );
 });
 
 /**
@@ -106,7 +111,7 @@ export async function startSession(): Promise<void> {
 
     const store = await cookies();
 
-    store.set(SESSION_COOKIE, createSessionToken(secret), {
+    store.set(SESSION_COOKIE, createSessionToken(secret, Date.now(), sessionEpoch()), {
         ...cookieOptions(),
         maxAge: SESSION_MAX_AGE_SECONDS,
     });

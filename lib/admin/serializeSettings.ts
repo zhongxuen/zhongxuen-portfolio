@@ -1,3 +1,4 @@
+import { printModule, type FieldSpec } from "@/lib/admin/printer";
 import type { NowEntry } from "@/types/now";
 
 /**
@@ -35,14 +36,16 @@ export class SettingsPatchError extends Error {
 }
 
 /**
- * Escapes a string for a double-quoted TypeScript literal.
+ * Escapes a string for a double-quoted TypeScript literal, for the two
+ * *patched* values only.
  *
- * Narrower than `serializeProjects`' `quote()`, which also chooses between quote
- * characters to minimise escapes. These three values are a short label and an ISO
- * date; a double quote in either is already unusual enough that escaping it is
- * the readable outcome.
+ * Narrower than `lib/admin/printer.ts`' `quote()`, which also chooses between
+ * quote characters to minimise escapes. These two values are a short label and
+ * an ISO date; a double quote in either is already unusual enough that escaping
+ * it is the readable outcome. `serializeNow` below does use the shared one,
+ * because it emits a data literal that Prettier will reformat.
  */
-function quote(value: string): string {
+function patchQuote(value: string): string {
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
 }
 
@@ -69,7 +72,7 @@ export function writeAvailability(
     return source.replace(
         pattern,
         (_match, head, openKey, labelKey, tail) =>
-            `${head}${openKey}${availability.open}${labelKey}${quote(availability.label)}${tail}`,
+            `${head}${openKey}${availability.open}${labelKey}${patchQuote(availability.label)}${tail}`,
     );
 }
 
@@ -81,7 +84,7 @@ export function writeLastModified(source: string, isoDate: string): string {
         throw new SettingsPatchError("the SITE_LAST_MODIFIED declaration");
     }
 
-    return source.replace(pattern, (_match, head, tail) => `${head}${quote(isoDate)}${tail}`);
+    return source.replace(pattern, (_match, head, tail) => `${head}${patchQuote(isoDate)}${tail}`);
 }
 
 /**
@@ -92,14 +95,20 @@ export function writeLastModified(source: string, isoDate: string): string {
  * constraint, that a comment placed inside the array is destroyed by the next
  * save. The header says so.
  *
- * Not generalized with `serializeProjects` into a shared typed printer, and that
- * is a deliberate "not yet": two callers with different shapes is not a pattern.
- * The plan's own open question puts the threshold at the third caller
- * (docs/admin-plan.md §14) — and `data/resume.ts`, which would be that third one,
- * is still edited by hand.
+ * Now built on `lib/admin/printer.ts` rather than on a hand-rolled loop. The
+ * generalization this file previously deferred ("two callers with different
+ * shapes is not a pattern… the threshold is the third") arrived when the console
+ * learned to write the four career files, so the layout rules live in one place
+ * and this module declares only a field order and a header.
  */
-export function serializeNow(entries: NowEntry[]): string {
-    const header = `import type { NowEntry } from "@/types/now";
+const NOW_FIELDS: readonly FieldSpec<NowEntry>[] = [
+    { key: "id" },
+    { key: "label" },
+    { key: "detail" },
+    { key: "since" },
+];
+
+const NOW_HEADER = `import type { NowEntry } from "@/types/now";
 
 /**
  * What is actually happening right now (docs/uiux.md §4.3).
@@ -121,28 +130,6 @@ export function serializeNow(entries: NowEntry[]): string {
 export const now: NowEntry[] = [
 `;
 
-    const body = entries
-        .map((entry) => {
-            const lines = (["id", "label", "detail", "since"] as const).map((key) => {
-                const literal = quote(entry[key]);
-                const oneLine = `        ${key}: ${literal},`;
-
-                /*
-                 * Every key here — id, label, detail, since — is under Prettier's
-                 * seven-column short-key threshold, so none is ever moved onto its
-                 * own line however long the value is. See `NEVER_BREAK_KEY_WIDTH`
-                 * in lib/admin/serializeProjects.ts for what that rule is and why
-                 * it matters. The branch stays rather than being hardcoded to
-                 * "inline", because a fifth, longer key would quietly need it.
-                 */
-                return oneLine.length <= 100 || key.length < 7
-                    ? `${oneLine}\n`
-                    : `        ${key}:\n            ${literal},\n`;
-            });
-
-            return `    {\n${lines.join("")}    },\n`;
-        })
-        .join("");
-
-    return `${header}${body}];\n`;
+export function serializeNow(entries: NowEntry[]): string {
+    return printModule({ header: NOW_HEADER, entries, fields: NOW_FIELDS });
 }

@@ -155,3 +155,87 @@ export function CheckboxField({
         </div>
     );
 }
+
+/**
+ * A `<select>` over a fixed set of options.
+ *
+ * Exists because two of the career fields — `employmentType` and a skill's
+ * `category` — are TypeScript unions rather than free strings, and a text input
+ * would let an operator type a value that fails the build. The union is
+ * restated as an options array in `lib/admin/careerForm.ts` (a type cannot be
+ * enumerated at runtime) and the Server Action re-checks membership, because a
+ * select is a courtesy and a POST is a POST.
+ *
+ * `allowEmpty` renders a blank first option for a genuinely optional union —
+ * `employmentType` is one. Without it the browser would preselect the first real
+ * value and a row that meant to say nothing would silently claim "Full-time".
+ */
+export function SelectField({
+    name,
+    label,
+    hint,
+    error,
+    options,
+    defaultValue = "",
+    disabled = false,
+    required = false,
+    allowEmpty = false,
+    emptyLabel = "— none —",
+}: {
+    name: string;
+    label: string;
+    hint?: string;
+    error?: string;
+    options: readonly string[];
+    defaultValue?: string;
+    disabled?: boolean;
+    required?: boolean;
+    allowEmpty?: boolean;
+    emptyLabel?: string;
+}) {
+    const errorId = `${name}-error`;
+    const hintId = `${name}-hint`;
+    const invalid = Boolean(error);
+
+    return (
+        <div className="flex min-w-0 flex-col gap-1.5">
+            <label htmlFor={name} className="text-sm font-medium text-ink">
+                {label}
+                {!required && <span className="ml-2 text-xs text-ink-muted">optional</span>}
+            </label>
+
+            <select
+                id={name}
+                name={name}
+                defaultValue={defaultValue}
+                disabled={disabled}
+                required={required}
+                aria-invalid={invalid || undefined}
+                aria-describedby={
+                    [invalid ? errorId : null, hint ? hintId : null].filter(Boolean).join(" ") ||
+                    undefined
+                }
+                className={controlStyles}
+            >
+                {allowEmpty && <option value="">{emptyLabel}</option>}
+                {options.map((option) => (
+                    <option key={option} value={option}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+
+            {error && (
+                <p id={errorId} className="text-sm text-danger">
+                    {error}
+                </p>
+            )}
+
+            {hint && (
+                <p id={hintId} className="text-xs leading-relaxed text-ink-muted">
+                    {hint}
+                </p>
+            )}
+        </div>
+    );
+}

@@ -9,7 +9,9 @@ import {
     commitFiles,
     commitMessage,
     screenshotHref,
+    screenshotTarget,
     type ScreenshotExtension,
+    type WriteTarget,
 } from "@/lib/admin/github";
 import { inDisplayOrder, loadProjectsFile, renumber } from "@/lib/admin/projectStore";
 import {
@@ -18,7 +20,7 @@ import {
     validateProject,
     type ProjectFormState,
 } from "@/lib/admin/projectForm";
-import { serializeProjects } from "@/lib/admin/serializeProjects";
+import { UnsafeWriteError, safeProjectsSource } from "@/lib/admin/validate";
 import type { ActionResult } from "@/types/admin";
 import type { Project } from "@/types/project";
 
@@ -175,21 +177,46 @@ export async function saveProject(
         ? commitMessage.projectCreate(next.title)
         : commitMessage.project(next.title);
 
+    /*
+     * Screenshot paths the operator removed from the list. Deleting the blob is
+     * the difference between "this image is no longer shown" and "this image is
+     * no longer in the repository" — without it, every trimmed screenshot stays
+     * in public/images/projects/ forever, and the orphan sweep on /admin/health
+     * exists to clean up after exactly this.
+     *
+     * Only paths this console could have written are deletable: `orphanTarget`
+     * returns null for anything that does not match the slug-index-extension
+     * filename the uploader produces, so a hand-added image with a different
+     * name is left alone rather than destroyed by a form edit.
+     */
+    const removed = (existing?.screenshots ?? []).filter(
+        (path) => !(next.screenshots ?? []).includes(path),
+    );
+    const deletions = removed
+        .map((path) => screenshotTarget(path))
+        .filter((target): target is WriteTarget => target !== null);
+
     try {
-        const source = serializeProjects(updated);
+        const { source, warnings: safety } = safeProjectsSource(updated);
 
         /*
-         * Two files or one. A screenshot plus the entry referencing it must be a
-         * single commit: two commits would leave `main` in a state where
+         * One commit, always. A screenshot plus the entry referencing it must be
+         * a single commit: two would leave `main` in a state where
          * data/projects.ts points at an image that is not there yet, and every
-         * deploy of that commit ships a broken <Image>.
+         * deploy of that commit ships a broken <Image>. A removal has the mirror
+         * problem, so it travels with its entry too.
          */
-        const commit = screenshot
+        const needsTree = Boolean(screenshot) || deletions.length > 0;
+
+        const commit = needsTree
             ? await commitFiles({
                   files: [
                       { target: { kind: "known", key: "projects" }, content: source },
-                      { target: screenshot.target, content: screenshot.content },
+                      ...(screenshot
+                          ? [{ target: screenshot.target, content: screenshot.content }]
+                          : []),
                   ],
+                  deletions,
                   message,
               })
             : await commitFile({
@@ -205,7 +232,15 @@ export async function saveProject(
             status: "success",
             message: isCreate ? `Created "${next.title}".` : `Saved "${next.title}".`,
             errors: {},
-            warnings,
+            warnings: [
+                ...warnings,
+                ...safety,
+                ...(removed.length > 0
+                    ? [
+                          `Deleted ${removed.length} screenshot file${removed.length === 1 ? "" : "s"} from the repository in the same commit.`,
+                      ]
+                    : []),
+            ],
             commit,
         };
     } catch (error) {
@@ -214,12 +249,16 @@ export async function saveProject(
 }
 
 /**
- * Removes a project.
+ * Removes a project and the screenshots only it referenced.
  *
- * Does not touch the GitHub repository the project describes, and does not delete
- * its screenshots — an image left in `public/images/projects/` costs 60 KB and
- * makes the deletion trivially reversible with `git revert`, which deleting it
- * would not be.
+ * Does not touch the GitHub repository the project describes.
+ *
+ * **It does now delete the screenshots, which reverses an earlier decision.**
+ * The original reasoning was that leaving them made the deletion reversible with
+ * `git revert`; that was wrong in a way worth recording, because the deletion
+ * and the images are now one commit, and reverting that commit restores both.
+ * Leaving them behind bought nothing and grew `public/images/projects/`
+ * monotonically — the console could add files there and never remove one.
  */
 export async function deleteProject(
     _previous: ActionResult,
@@ -251,19 +290,44 @@ export async function deleteProject(
         inDisplayOrder(file.projects.filter((project) => project.slug !== slug)),
     );
 
+    /*
+     * Only the files this project alone referenced. A path another entry still
+     * lists is kept, which cannot happen through the editor but can through a
+     * hand-edit, and deleting it would break that other project's gallery.
+     */
+    const stillReferenced = new Set(remaining.flatMap((project) => project.screenshots ?? []));
+    const deletions = (target.screenshots ?? [])
+        .filter((path) => !stillReferenced.has(path))
+        .map((path) => screenshotTarget(path))
+        .filter((candidate): candidate is WriteTarget => candidate !== null);
+
     try {
-        const commit = await commitFile({
-            target: { kind: "known", key: "projects" },
-            content: serializeProjects(remaining),
-            sha: file.sha,
-            message: commitMessage.projectDelete(target.title),
-        });
+        const { source } = safeProjectsSource(remaining);
+
+        const commit =
+            deletions.length > 0
+                ? await commitFiles({
+                      files: [{ target: { kind: "known", key: "projects" }, content: source }],
+                      deletions,
+                      message: commitMessage.projectDelete(target.title),
+                  })
+                : await commitFile({
+                      target: { kind: "known", key: "projects" },
+                      content: source,
+                      sha: file.sha,
+                      message: commitMessage.projectDelete(target.title),
+                  });
 
         revalidateAdmin();
 
+        const images =
+            deletions.length > 0
+                ? ` ${deletions.length} screenshot${deletions.length === 1 ? "" : "s"} went with it.`
+                : "";
+
         return {
             status: "success",
-            message: `Removed "${target.title}". /projects/${slug} becomes a 404 once the deploy finishes.`,
+            message: `Removed "${target.title}". /projects/${slug} becomes a 404 once the deploy finishes.${images}`,
             commit,
         };
     } catch (error) {
@@ -321,9 +385,11 @@ export async function reorderProjects(
     const reordered = renumber(order.map((slug) => bySlug.get(slug)!));
 
     try {
+        const { source } = safeProjectsSource(reordered);
+
         const commit = await commitFile({
             target: { kind: "known", key: "projects" },
-            content: serializeProjects(reordered),
+            content: source,
             sha: file.sha,
             message: commitMessage.reorder(reordered.length),
         });
@@ -432,12 +498,23 @@ function describe(error: unknown, fallback: string): string {
     console.error("[admin/projects] action failed", error);
 
     /*
-     * ProjectSourceError's message names a field or a line number and nothing
+     * ModuleSourceError's message names a field or a line number and nothing
      * else, and it is the one message the operator actually needs — a file the
-     * parser refuses to read cannot be fixed from a generic sentence.
+     * parser refuses to read cannot be fixed from a generic sentence. Its text
+     * is written in this repository and carries no GitHub response body.
      */
-    if (error instanceof Error && error.name === "ProjectSourceError") {
+    if (error instanceof Error && error.name === "ModuleSourceError") {
         return error.message;
+    }
+
+    /*
+     * The safety gate refused the write (lib/admin/validate.ts). This is the one
+     * failure the operator can do nothing about from the form, so it says so
+     * plainly and names what came back wrong rather than hiding behind "the
+     * commit failed" — the commit was never attempted.
+     */
+    if (error instanceof UnsafeWriteError) {
+        return `Nothing was written. ${error.reasons.join(" ")} This is a bug in the console's serializer, not in your edit — the details are in the deployment logs.`;
     }
 
     return `${fallback} The reason is in the deployment logs.`;

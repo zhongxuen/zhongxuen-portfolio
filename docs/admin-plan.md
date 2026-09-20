@@ -167,7 +167,7 @@ Stored as environment variables, never in the repo:
 
 ```
 ADMIN_USERNAME=zhongxuen
-ADMIN_PASSWORD_HASH=scrypt$16384$8$1$<base64 salt>$<base64 hash>
+ADMIN_PASSWORD_HASH=scrypt.16384.8.1.<base64url salt>.<base64url hash>
 ADMIN_SESSION_SECRET=<32 random bytes, base64>
 ```
 
@@ -175,6 +175,16 @@ ADMIN_SESSION_SECRET=<32 random bytes, base64>
   (`scripts/hash-password.mjs`) using `node:crypto.scryptSync` with a
   per-password random salt. The plaintext password never exists in the repo,
   in Vercel, or in a log line.
+- **The fields are dot-separated and base64url, not `$`-separated and base64.**
+  This plan originally specified `$`, which cannot survive a `.env` file: Next's
+  env loader expands `$NAME`, so an 86-character hash reached `verifyPassword`
+  as `scrypt6384` and every local login failed with the generic wrong-password
+  message. Quoting does not rescue it — single quotes, double quotes and
+  backslash escapes were all tested against `@next/env` and all still expand.
+  Vercel-set variables bypass dotenv entirely, so production was fine and the
+  failure reproduced only on a laptop, which is what made it expensive to find.
+  `tests/lib/adminAuth.test.ts` now asserts the hash contains no character a
+  `.env` loader, a shell or a quoting rule treats specially.
 - Verification uses `crypto.timingSafeEqual` on equal-length buffers, so a
   wrong password costs the same time as a right one.
 - The username is compared the same way, so the form cannot be used to
@@ -999,3 +1009,268 @@ files in the repository predate Prettier and would fail it immediately; adding t
 step would mean a reformat commit touching most of the tree, which is a separate
 decision. Every file this work touched is format-clean, and the serializers'
 output correctness is pinned by their byte-for-byte tests instead.
+
+---
+
+## 17. Second pass — what the first version could not do
+
+Written after the follow-up build, 2026-09-20. §16 is the diff against the plan;
+this is the diff against §16. Ten items, in roughly the order of how badly they
+were needed.
+
+The through-line: the first version could **write** well, and could not
+**check**, **edit its own source data**, **delete**, or **notice**. Every item
+below is one of those four.
+
+### 17.1 The career files are editable — `/admin/career`
+
+§14's first open question asked whether `data/now.ts` and `data/resume.ts` were
+worth their own emitters, and put the threshold for generalizing at the third
+caller. There are now six, and the gap was sharper than "two more files":
+**`/admin/resume` could regenerate the PDF and could not edit one word that went
+into it.** `lib/resume/model.ts` reads `data/experience.ts`,
+`data/education.ts`, `data/skills.ts` and `data/certifications.ts`, and all four
+were unreachable from a browser. The console could publish a résumé it could not
+author.
+
+So the layout rules moved into `lib/admin/printer.ts` and the scanner into
+`lib/admin/parseModule.ts`, and `serializeProjects`, `serializeSettings` and the
+four new `serializeCareer` emitters became field orders and headers over them.
+The byte-for-byte tests passed through the refactor unchanged, which is the only
+reason it was safe to do at all.
+
+Four separate forms and four separate commits, not one "save everything" button:
+the git history is the audit log, and `chore(admin): update experience` is worth
+more than `chore(admin): update career`. It also means a validation failure in
+Skills does not discard unsaved work in Experience.
+
+**Three things this cost, recorded because they were real losses:**
+
+- **`data/experience.ts` and `data/education.ts` carried block comments inside
+  their arrays** — why one `endDate` is `"Present"` rather than a known future
+  date, and why a finished diploma is still open. Both are genuine reasoning, and
+  both moved into the file headers where a re-emit keeps them.
+- **`data/skills.ts` grouped its entries with `// Category` headings.** Those
+  restated the `category` field on the following line, and were dropped.
+- **`parseModule` now reads comments** so a hand-edit that adds one is not a
+  parse failure. It still cannot *keep* one. Every written file's header says so.
+
+### 17.2 Nothing is committed without being parsed back — `lib/admin/validate.ts`
+
+The hole, stated plainly: `serializeProjects` emitted text and `commitFile`
+pushed it, and **nothing read the emitted text back**. Under §2's bet — GitHub is
+the database, no staging, a save is a commit to `main` — a serializer bug does
+not produce an error message. It produces a deploy, and the recovery path is
+`git revert` from whatever device is to hand.
+
+Now every write serializes, re-parses its own output, and refuses the commit
+unless what comes back equals what went in. That one property covers the whole
+class: a field the serializer does not know about and drops (which is §16.2's
+`disclaimers` bug — the one that would have deleted four entries' worth of
+prose), a quote choice that mangles an apostrophe, output that is not valid
+TypeScript at all. The project invariants from `tests/data/integrity.test.ts`
+run alongside it, because a save from this console does not pass through CI
+before it reaches `main`.
+
+`safeProjectsSource` is now the only way `data/projects.ts` is produced for a
+commit. A call to the bare serializer in an action is a review finding.
+
+Cost: one extra parse of a 40 KB string, inside an action already waiting on two
+GitHub round trips.
+
+### 17.3 Deletion exists
+
+Three additions and one reversal.
+
+`commitFiles` gained deletions (a tree entry with a null sha); `deleteFiles`
+filters to paths that exist first — GitHub answers a delete of an absent path
+with 422, which `request()` would have reported as "the repository changed since
+this page loaded", a confusing lie about a file that was already gone; and
+`screenshotTarget` re-derives a stored path back into a write target, returning
+null for anything this console could not itself have written.
+
+That last one matters more than it looks. The allowlist closes path traversal by
+*construction* — a caller cannot express a path. Deletion broke the symmetry,
+because it starts from a string sitting in `data/projects.ts`. So the string goes
+back through the same constructor rather than being trusted, and
+`tests/lib/screenshotTarget.test.ts` is nineteen assertions about what it
+refuses.
+
+**The reversal:** `deleteProject` used to leave screenshots behind, arguing that
+it kept the deletion reversible with `git revert`. That was wrong. The deletion
+and the images are now one commit, so reverting restores both — and leaving them
+bought nothing while growing `public/images/projects/` monotonically, since the
+console could add files there and never remove one.
+
+### 17.4 A save now reports whether its build succeeded
+
+§14's second open question — "worth a Vercel API token to turn 'building…' into
+a real progress indicator, or is the commit link enough?" — had the wrong frame.
+Landing was never in doubt; the action returned a sha. What the banner could not
+say is whether the **build** succeeded, and **a save that broke the build looked
+exactly like one that worked**: the same green plate, the same "Vercel is
+building", then silence. The live site would go on serving the previous deploy,
+so checking it showed no change and read as "not finished yet".
+
+`DeployStatus` now polls `checkDeployment(sha)` with a widening interval, and
+stops three ways — a terminal state, a poll ceiling, or a first answer of
+`"unknown"`. Without `VERCEL_TOKEN` the first call answers `"unknown"`, the
+original sentence renders, and no further requests are made.
+
+The dashboard also shows the latest **production** deployment's state, which
+answers a question it could not before: is what the live site is serving actually
+the last thing that was committed?
+
+### 17.5 Sessions can be revoked without rotating the secret
+
+The cookie is stateless and signed, so there is no session row to delete. The
+only way to end a live session early was rotating `ADMIN_SESSION_SECRET` — a real
+revoke-all button, but one needing a new secret pasted into Vercel and a
+redeploy, at exactly the moment you are least willing to wait.
+
+`ADMIN_SESSION_EPOCH` is carried inside the signed payload, so a stolen cookie
+cannot have its epoch edited without breaking the signature. Raising it rejects
+every token signed under the previous number, immediately. A token minted before
+the field existed reads as the default rather than being rejected, so shipping
+this did not sign anyone out; a malformed value falls back to the default rather
+than throwing, because a typo in this variable must not be a total lockout.
+
+### 17.6 Access is logged — `lib/admin/audit.ts`
+
+The dashboard says the commit history *is* the audit log and there was no feature
+to build. That is exactly right for **writes**, and says nothing about
+**access**. A rejected login produced `console.warn("[admin] rejected login
+attempt")` — no address, no username, and no record whatsoever of a *successful*
+one. Someone who got in left no trace until they saved something.
+
+One structured line per event, `AUDIT` prefix, JSON payload, read with `vercel
+logs`. A database for this would be a database the console does not otherwise
+have. No password, no token, no cookie, and no TOTP code ever appears — not even
+a rejected one, since a near-miss code is a real code a few seconds early.
+Submitted usernames are stripped of control characters before logging, so a
+newline cannot forge a second line.
+
+### 17.7 The contact form's silence is distinguishable from success
+
+`sendViaResend` threw, the action caught it, the visitor got the mailto fallback
+— correct for them, and the site's owner was told nothing. A revoked key turns
+every enquiry into a silent fallback, and the symptom is a quiet month. **You do
+not notice a form that has been broken for three weeks, because that looks
+exactly like nobody writing to you.**
+
+`lib/admin/deliveries.ts` keeps twenty outcomes in memory. It is honest about its
+limits and the page says both out loud: an empty panel means "nothing since this
+instance started", never "nothing ever"; a failure shown is real. False
+negatives, never false positives, which is the right way round for a warning
+light. No message content is kept, and no provider response body — a visitor
+wrote to a contact form, not to a diagnostic buffer.
+
+### 17.8 `/admin/health` — the things that break without telling anyone
+
+Three checks sharing one property: **nothing else in the system reports them.**
+A dead demo link still builds. A screenshot referenced but absent still builds —
+Next does not fail a build over a missing file in `public/`. A contact form with
+a revoked key still renders and still thanks the visitor.
+
+- **Outbound links**, a button rather than a page load, because it makes a dozen
+  requests to other people's servers. `HEAD` then `GET` on 405, since some hosts
+  only route declared verbs and reporting those as broken would be the checker's
+  own bug shown as the site's. `redirect: "manual"`, because a live demo that now
+  301s to a parked domain is exactly the failure being looked for. 401/403/429 is
+  its own verdict — "something is there and it will not say" — because the
+  checker cannot tell a private repo from bot protection and should not guess.
+- **Screenshots**, reconciled in both directions against the repository rather
+  than against this build, since `public/` is baked in and a file deleted
+  yesterday is still on disk in a week-old deploy. Orphans get a checkbox; files
+  this console could not have written are listed and never offered for deletion.
+- **Contact deliveries**, from §17.7.
+
+### 17.9 The dashboard says whether anyone is reading
+
+It counted projects, featured projects and screenshots — all facts about the
+file, none of them about whether the work is being seen. The decision made most
+often in this console is which projects to feature and in what order, and it was
+being made with no information at all.
+
+Per-slug views over 30 days, bars scaled to the most-viewed entry rather than to
+an absolute maximum, and the home page excluded — it wins by an order of
+magnitude and would flatten the comparison the panel exists to make.
+
+### 17.10 An optional second factor
+
+**The honest objection first:** `ADMIN_TOTP_SECRET` lives in the same environment
+as `ADMIN_PASSWORD_HASH` and `GITHUB_ADMIN_TOKEN`, so it does not help against a
+leaked environment. The value is narrower and real — it defeats a password that
+leaked *on its own*, through a reused credential, a phishing page, or a browser
+that saved it on a shared machine, which is the common way a single-operator
+console is actually broken into.
+
+Optional by presence of the secret: no variable, no second factor, no field. No
+enrolment flow and no recovery codes — this is one operator with access to their
+own Vercel dashboard, and deleting the variable is a faster and safer escape
+hatch than any code that could itself be stolen. `scripts/hash-password.mjs
+--totp` mints a secret and prints both the `otpauth://` URI and the current code,
+so the app can be checked to agree *before* the variable is deployed.
+
+`tests/lib/totp.test.ts` pins the implementation against RFC 6238's own published
+vectors rather than against itself — a round-trip test would pass for something
+internally consistent and wrong, and the symptom of wrong is an authenticator
+that never agrees with the login form.
+
+### 17.11 Three bugs the new checks found
+
+None was visible in review; each was found by an assertion, which is the only
+reason they are listed here rather than shipped.
+
+1. **`serializeNow` always used double quotes.** Prettier picks whichever
+   character produces fewer escapes, so a NOW entry containing a `"` would have
+   emitted text that `npm run format:check` reformats — and the byte-for-byte
+   assertion would have started failing after an admin save, for a reason nobody
+   would have connected to the save. Moving onto the shared printer took
+   `serializeProjects`' rule, which was always the correct one.
+2. **`totpUri` built its query with `URLSearchParams`**, which encodes a space as
+   `+`. Correct for a form body, wrong for a URI. An issuer containing a space
+   arrives at the authenticator as `Portfolio+console` and is filed under that
+   name forever — invisible until someone reads the entry in their app, which is
+   the moment it can no longer be fixed without re-enrolling.
+3. **`printModule` emitted `[` and `];` for an empty array**, where Prettier
+   writes `[];`. `data/certifications.ts` is empty today and failed
+   `format:check` immediately; the same bug would otherwise have appeared the
+   first time the console removed the last entry from any list.
+
+### 17.12 Verified, and not verified
+
+Verified: 384 tests pass, `tsc --noEmit` and `eslint` are clean, and a production
+build succeeds with the four new routes present. The four career files were
+regenerated *from their own contents* through the new serializers, so what is on
+disk is byte-for-byte what the console will write, and the first save from
+`/admin/career` produces a zero-diff commit. The action guard test picks up all
+three new action modules automatically and asserts `verifySession()` on every
+export.
+
+**Still not verified, and unchanged from §16.4: no commit has ever reached
+GitHub.** Everything in §17.2 and §17.3 sits on top of that path — the round-trip
+gate, deletion, the tree-with-null-sha write — and all of it is exercised only by
+its types and by unit tests over pure functions. Do the first save on a preview
+deploy and confirm the commit lands before pointing this at `main`.
+
+Also unverified: the Vercel deployment and analytics reads, since the build
+machine has no token, and the link checker against real hosts.
+
+### 17.13 Still deliberately not done
+
+§15's exclusions all stand — no multi-user accounts, no database, no editing
+components from the browser, no draft mode, no LLM-generated copy, no media
+processing. `npm run format:check` is still not in CI for §16.5's reason,
+although every file this work touched is format-clean.
+
+New to the list:
+
+- **A durable store for contact deliveries.** The in-memory ring is a diagnostic,
+  and giving it a database would be a larger decision than the diagnostic
+  deserves.
+- **Scheduled link checking.** A cron job that emails about a dead demo is a
+  notification channel to build and maintain; a button pressed when it is useful
+  is most of the value for none of the cost.
+- **Per-entry saves on `/admin/career`.** Would need a second concept of identity
+  layered on top of an `id` the operator is editing in the same form.

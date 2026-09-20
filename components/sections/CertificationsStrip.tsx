@@ -38,7 +38,8 @@ export function CertificationsStrip() {
                         key={certification.id}
                         data-reveal="pop"
                         style={revealDelay(stagger(index))}
-                        className="bp-branch bp-ticks bp-ticks-live bp-lift flex flex-col gap-1 rounded-lg border border-line bg-surface p-4 [--bp-branch-x:1rem]"
+                        /* Tap cut to this grid's `gap-3`; the card default is twice the gutter. */
+                        className="bp-branch bp-ticks bp-ticks-live bp-lift flex flex-col gap-1 rounded-lg border border-line bg-surface p-4 [--bp-branch:0.75rem] [--bp-branch-x:1rem]"
                     >
                         <p className="bp-meta text-ink-muted">
                             {formatMonthYear(certification.date)}

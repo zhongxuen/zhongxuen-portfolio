@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     SESSION_MAX_AGE_SECONDS,
     createSessionToken,
+    readEpoch,
     hashPassword,
     verifyPassword,
     verifySessionToken,
@@ -40,9 +41,19 @@ describe("hashPassword / verifyPassword", () => {
     });
 
     it("records its parameters in the hash, so they can be raised later", () => {
-        expect(hashPassword("x")).toMatch(
-            /^scrypt\$16384\$8\$1\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/,
-        );
+        expect(hashPassword("x")).toMatch(/^scrypt\.16384\.8\.1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    });
+
+    /*
+     * The regression this format exists for. The previous $-separated hash was
+     * expanded by Next's env loader on the way out of .env.local — an 86-character
+     * string arrived as `scrypt6384` — so every local login failed with the same
+     * generic message a wrong password gives. Nothing in the app could detect it;
+     * only diffing the file against process.env showed it. Keep the hash free of
+     * every character a .env loader, a shell or a quoting rule treats specially.
+     */
+    it("produces a hash no .env loader will mangle", () => {
+        expect(hashPassword("x")).not.toMatch(/[$"'\\\s]/);
     });
 
     describe("fails closed rather than throwing on a malformed hash", () => {
@@ -54,11 +65,12 @@ describe("hashPassword / verifyPassword", () => {
         it.each([
             ["undefined", undefined],
             ["empty", ""],
-            ["not scrypt", "bcrypt$1$2$3$4$5"],
-            ["too few parts", "scrypt$16384$8$1$salt"],
-            ["non-numeric cost", "scrypt$N$8$1$c2FsdA==$aGFzaA=="],
-            ["empty salt", "scrypt$16384$8$1$$aGFzaA=="],
-            ["impossible cost", "scrypt$3$8$1$c2FsdA==$aGFzaA=="],
+            ["not scrypt", "bcrypt.1.2.3.4.5"],
+            ["too few parts", "scrypt.16384.8.1.salt"],
+            ["non-numeric cost", "scrypt.N.8.1.c2FsdA.aGFzaA"],
+            ["empty salt", "scrypt.16384.8.1..aGFzaA"],
+            ["impossible cost", "scrypt.3.8.1.c2FsdA.aGFzaA"],
+            ["retired $-separated format", "scrypt$16384$8$1$c2FsdA==$aGFzaA=="],
         ])("%s", (_name, stored) => {
             expect(verifyPassword("anything", stored)).toBe(false);
         });
@@ -154,5 +166,70 @@ describe("session tokens", () => {
         const realSignature = token.split(".")[1];
 
         expect(verifySessionToken(`${payload}.${realSignature}`, SECRET, NOW)).toBeNull();
+    });
+});
+
+/**
+ * Session revocation by epoch (docs/admin-plan.md §17.5).
+ *
+ * The cookie is stateless and signed, so there is no session row to delete. The
+ * only way to end a live session early used to be rotating
+ * `ADMIN_SESSION_SECRET` — a real revoke-all button, but one that needs a new
+ * secret pasted into Vercel and a redeploy, at the exact moment you are least
+ * willing to wait.
+ */
+describe("session epoch", () => {
+    const SECRET = "a-test-secret-value-at-least-32-bytes-long";
+    const NOW = 1_800_000_000_000;
+
+    it("accepts a token minted under the same epoch", () => {
+        const token = createSessionToken(SECRET, NOW, 4);
+
+        expect(verifySessionToken(token, SECRET, NOW, 4)).not.toBeNull();
+    });
+
+    it("rejects a token from a previous epoch, however valid its signature", () => {
+        const token = createSessionToken(SECRET, NOW, 3);
+
+        expect(verifySessionToken(token, SECRET, NOW, 4)).toBeNull();
+    });
+
+    /*
+     * The epoch travels inside the signed payload, so it cannot be edited in a
+     * stolen cookie without breaking the signature. Re-signing needs the secret,
+     * which is the thing the attacker does not have.
+     */
+    it("cannot be raised by editing the cookie", () => {
+        const [payload] = createSessionToken(SECRET, NOW, 1).split(".");
+        const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+        const forged = Buffer.from(JSON.stringify({ ...decoded, epoch: 9 })).toString("base64url");
+
+        expect(verifySessionToken(`${forged}.${payload}`, SECRET, NOW, 9)).toBeNull();
+    });
+
+    /*
+     * A token minted before the field existed carries no `epoch` and is read as
+     * the default rather than rejected — so shipping this did not sign everyone
+     * out on deploy. Bumping the variable past 1 invalidates those too, which is
+     * exactly what the lever is for.
+     */
+    it("treats a token with no epoch as the first one", () => {
+        const legacy = createSessionToken(SECRET, NOW);
+
+        expect(verifySessionToken(legacy, SECRET, NOW, 1)).not.toBeNull();
+        expect(verifySessionToken(legacy, SECRET, NOW, 2)).toBeNull();
+    });
+
+    /*
+     * A typo must not take the console down. Falling back turns a mis-set value
+     * into a failure to revoke rather than a total lockout — which is why the
+     * settings page reports the variable's presence.
+     */
+    it("falls back to the default for anything that is not a positive integer", () => {
+        for (const bad of [undefined, "", "0", "-3", "two", "1.5", " "]) {
+            expect(readEpoch(bad)).toBe(1);
+        }
+
+        expect(readEpoch("7")).toBe(7);
     });
 });

@@ -17,6 +17,14 @@ export interface AdminSession {
     iat: number;
     /** Expiry, epoch seconds. Rejected before the payload is trusted for anything. */
     exp: number;
+    /**
+     * Revocation generation, from `ADMIN_SESSION_EPOCH`. A token whose epoch is
+     * not the configured one is rejected however valid its signature — that is
+     * the "sign out everywhere" lever, and it takes effect without rotating the
+     * signing secret. Optional so tokens minted before the field existed still
+     * verify; see `DEFAULT_SESSION_EPOCH` in lib/admin/session.ts.
+     */
+    epoch?: number;
 }
 
 /**
@@ -147,3 +155,43 @@ export interface ResumeActionState extends ActionResult {
 }
 
 export const IDLE_RESUME: ResumeActionState = { status: "idle", message: "" };
+
+/**
+ * How a Vercel build is doing, for the banner that a save leaves behind.
+ *
+ * `"unknown"` and `"pending"` are deliberately different. Pending means the
+ * deployment has not appeared yet and one more poll is worth making; unknown
+ * means this deployment has no Vercel token configured, or the API could not be
+ * reached, and no amount of waiting will produce an answer. Collapsing them
+ * would make the UI either spin forever on an unconfigured deploy or give up on
+ * a commit that was two seconds old.
+ */
+export type DeployState = "pending" | "building" | "ready" | "error" | "canceled" | "unknown";
+
+export interface DeployStatusResult {
+    state: DeployState;
+    /** The build log. On a failure this is the only useful destination. */
+    inspectorUrl?: string;
+    /** The deployment's own URL. */
+    url?: string;
+    /** Epoch ms. */
+    createdAt?: number;
+}
+
+/**
+ * What the health page's link sweep returns.
+ *
+ * Lives here rather than beside the action for the reason `ResumeActionState`
+ * documents: a `"use server"` module's exports are the action surface, and
+ * keeping it to async functions means nothing has to reason about which of them
+ * is erased at compile time and which becomes a callable endpoint.
+ *
+ * `LinkCheck` is imported from lib/admin/health.ts as a type only — that module
+ * is `server-only`, and a type import is erased before any of it could reach a
+ * client bundle.
+ */
+export interface LinkCheckResult extends ActionResult {
+    checks?: import("@/lib/admin/health").LinkCheck[];
+    /** When the sweep ran, so a stale result left on screen is visibly stale. */
+    ranAt?: number;
+}

@@ -122,9 +122,14 @@ export function SkillsSection() {
                                          * project card, so the trace is pulled
                                          * in to match its 0.75rem padding —
                                          * at the card default it would land
-                                         * past the glyph it points at.
+                                         * past the glyph it points at. The tap
+                                         * is cut to this grid's `gap-3` for
+                                         * the same reason: at the card default
+                                         * it is twice the gutter it has to
+                                         * cross, so on every row but the first
+                                         * it climbs over the tile above.
                                          */
-                                        className="bp-branch [--bp-branch-x:0.75rem]"
+                                        className="bp-branch [--bp-branch:0.75rem] [--bp-branch-x:0.75rem]"
                                     >
                                         <SkillCard skill={skill} />
                                     </div>

@@ -37,12 +37,36 @@ describe("serializeNow", () => {
         expect(output).toContain(`        detail: "${"d".repeat(120)}",`);
     });
 
-    it("escapes quotes", () => {
+    /**
+     * Single quotes, not escaped double ones — which is a behaviour change, and
+     * the change is the fix. `serializeNow` used to carry its own narrow escaper
+     * that always emitted double quotes; Prettier picks whichever character
+     * produces fewer escapes, so that output would have been reformatted by the
+     * next `npm run format:check` and the byte-for-byte assertion above would
+     * have started failing after an admin save. Moving onto the shared printer
+     * (lib/admin/printer.ts) took `serializeProjects`' rule, which was always the
+     * correct one.
+     */
+    it("quotes the way Prettier does, minimising escapes", () => {
         const output = serializeNow([
             { id: "x", label: "L", detail: 'He said "hi"', since: "2026-01-01" },
         ]);
 
-        expect(output).toContain('detail: "He said \\"hi\\"",');
+        expect(output).toContain(`detail: 'He said "hi"',`);
+    });
+
+    /**
+     * And when both characters appear, the rule still applies: two doubles beat
+     * one single, so the literal is single-quoted and the apostrophe is the one
+     * that gets escaped. Fewer escapes, which is the whole rule.
+     */
+    it("escapes only the quote character it chose", () => {
+        const output = serializeNow([
+            { id: "x", label: "L", detail: `it's "both"`, since: "2026-01-01" },
+        ]);
+
+        // String.raw, so the backslash in the expected literal stays a backslash.
+        expect(output).toContain(String.raw`detail: 'it\'s "both"',`);
     });
 });
 

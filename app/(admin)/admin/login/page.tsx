@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { readSession } from "@/lib/admin/dal";
+import { isTotpEnabled } from "@/lib/admin/auth";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { Monogram } from "@/components/ui/Monogram";
 
@@ -31,7 +32,7 @@ export default async function LoginPage() {
                     </div>
                 </div>
 
-                <LoginForm />
+                <LoginForm totp={isTotpEnabled()} />
 
                 <p className="mt-6 text-xs leading-relaxed text-ink-muted">
                     Every change made here is committed to the repository under your name and

@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, FolderGit2, LayoutDashboard, RefreshCw, Settings } from "lucide-react";
+import {
+    BriefcaseBusiness,
+    FileText,
+    FolderGit2,
+    LayoutDashboard,
+    RefreshCw,
+    Settings,
+    Stethoscope,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,8 +26,10 @@ import { cn } from "@/lib/utils";
 const items = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/admin/projects", label: "Projects", icon: FolderGit2 },
+    { href: "/admin/career", label: "Career", icon: BriefcaseBusiness },
     { href: "/admin/sync", label: "Sync", icon: RefreshCw },
     { href: "/admin/resume", label: "Résumé", icon: FileText },
+    { href: "/admin/health", label: "Health", icon: Stethoscope },
     { href: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 

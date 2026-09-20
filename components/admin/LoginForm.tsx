@@ -15,10 +15,16 @@ import { INITIAL_LOGIN_STATE } from "@/types/admin";
  * JavaScript disabled.
  *
  * The error message is the same string for every rejection — wrong username,
- * wrong password, empty field. The action decides that; this component must not
- * add a field-level hint that would undo it.
+ * wrong password, wrong second-factor code, empty field. The action decides
+ * that; this component must not add a field-level hint that would undo it.
+ *
+ * `totp` comes from the server, since whether a second factor is configured is a
+ * property of the deployment's environment and this component cannot read one.
+ * It only controls whether the field is *rendered*: the action re-checks the
+ * code regardless of what was posted, because a form is a courtesy and a POST is
+ * a POST.
  */
-export function LoginForm() {
+export function LoginForm({ totp = false }: { totp?: boolean }) {
     const [state, formAction, pending] = useActionState(login, INITIAL_LOGIN_STATE);
 
     return (
@@ -60,6 +66,37 @@ export function LoginForm() {
                         className={controlStyles}
                     />
                 </div>
+
+                {totp && (
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="code" className="text-sm font-medium text-ink">
+                            Authenticator code
+                        </label>
+                        {/*
+                         * `one-time-code` plus a numeric inputmode is what makes
+                         * a phone offer the code from its SMS/authenticator
+                         * autofill and show a digit keypad. `autoComplete="off"`
+                         * would be the instinct for a secret and would be wrong
+                         * — it costs the autofill and protects nothing, since
+                         * the value is dead in thirty seconds.
+                         */}
+                        <input
+                            id="code"
+                            name="code"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            pattern="[0-9]*"
+                            maxLength={6}
+                            required
+                            disabled={pending}
+                            className={`${controlStyles} font-mono tracking-[0.3em]`}
+                        />
+                        <p className="text-xs text-ink-muted">
+                            Six digits from your authenticator app.
+                        </p>
+                    </div>
+                )}
 
                 <Button type="submit" variant="primary" size="md" disabled={pending}>
                     {pending ? (

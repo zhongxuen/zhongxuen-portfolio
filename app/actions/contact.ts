@@ -12,6 +12,7 @@ import {
     type ContactValues,
 } from "@/lib/contact";
 import { rateLimit } from "@/lib/rateLimit";
+import { recordDelivery } from "@/lib/admin/deliveries";
 
 /**
  * Contact form Server Action.
@@ -100,6 +101,14 @@ export async function submitContactForm(
     // degrade to the old mailto behaviour instead of throwing. What the visitor
     // typed is already composed into the link, so nothing is lost.
     if (!apiKey) {
+        /*
+         * Recorded, not just returned. An unconfigured deployment falling back
+         * to mailto on every submission is a working site and a broken contact
+         * channel at the same time, and the admin dashboard is the only place
+         * anyone would ever notice the difference. See lib/admin/deliveries.ts.
+         */
+        recordDelivery({ outcome: "fallback", reason: "RESEND_API_KEY is not set" });
+
         return {
             status: "fallback",
             message:
@@ -112,11 +121,27 @@ export async function submitContactForm(
 
     try {
         await sendViaResend(apiKey, values);
+        recordDelivery({ outcome: "sent" });
     } catch (error) {
         // Log the real reason server-side, return something generic. Action
         // return values are serialized to the client, so they must not carry
         // provider responses or anything about key state.
         console.error("[contact] send failed", error);
+
+        /*
+         * The status code, never the provider's response body — that body can
+         * echo the request, and this record is read back on an admin page. The
+         * status alone separates the cases that matter: 401/403 is a revoked or
+         * wrong key, 422 is usually an unverified sender, 5xx is theirs.
+         */
+        recordDelivery({
+            outcome: "failed",
+            status: error instanceof ResendError ? error.status : undefined,
+            reason:
+                error instanceof ResendError
+                    ? "The mail provider rejected the send."
+                    : "The mail provider could not be reached.",
+        });
 
         return {
             status: "error",
@@ -210,6 +235,24 @@ function buildMailto(values: ContactValues): string {
     return `mailto:${AUTHOR.email}?${params.toString()}`;
 }
 
+/**
+ * A provider rejection with its status preserved.
+ *
+ * The status is worth keeping and the body is not: `lib/admin/deliveries.ts`
+ * surfaces the former on an admin page, and a provider error body can echo the
+ * request — including the visitor's address — which has no business being held
+ * in a diagnostic buffer.
+ */
+class ResendError extends Error {
+    readonly status: number;
+
+    constructor(status: number) {
+        super(`Resend responded ${status}`);
+        this.name = "ResendError";
+        this.status = status;
+    }
+}
+
 async function sendViaResend(apiKey: string, values: ContactValues): Promise<void> {
     const response = await fetch(RESEND_ENDPOINT, {
         method: "POST",
@@ -240,7 +283,9 @@ async function sendViaResend(apiKey: string, values: ContactValues): Promise<voi
     });
 
     if (!response.ok) {
-        throw new Error(`Resend responded ${response.status}: ${await response.text()}`);
+        console.error(`[contact] Resend ${response.status}`, await response.text());
+
+        throw new ResendError(response.status);
     }
 }
 

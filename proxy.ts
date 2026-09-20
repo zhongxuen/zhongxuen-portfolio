@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/admin/session";
+import { SESSION_COOKIE, readEpoch, verifySessionToken } from "@/lib/admin/session";
 
 /**
  * Optimistic session check for /admin (docs/admin-plan.md §4.3).
@@ -30,9 +30,17 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
+    /*
+     * The epoch is read here too, not only in the DAL. This check is optimistic
+     * and not the security boundary, but leaving it out would mean a revoked
+     * cookie still got waved through to a page that then redirected — a flash of
+     * admin chrome, which is the one thing this proxy exists to prevent.
+     */
     const session = verifySessionToken(
         request.cookies.get(SESSION_COOKIE)?.value,
         process.env.ADMIN_SESSION_SECRET,
+        Date.now(),
+        readEpoch(process.env.ADMIN_SESSION_EPOCH),
     );
 
     if (session) {

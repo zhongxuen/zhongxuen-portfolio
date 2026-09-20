@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Produces the three admin credential values for .env.local and Vercel.
+ * Produces the admin credential values for .env.local and Vercel.
  *
  *   node scripts/hash-password.mjs
  *   node scripts/hash-password.mjs "a generated passphrase"
+ *   node scripts/hash-password.mjs --totp     # also mint a second-factor secret
  *
  * With no argument it generates a 24-character passphrase for you, which is the
  * recommended path: the real defence on this login form is the password's
@@ -21,11 +22,13 @@
  * matter, so there is exactly one place the format is defined: see the note.
  */
 
-import { randomBytes, scryptSync } from "node:crypto";
+import { createHmac, randomBytes, scryptSync } from "node:crypto";
 
 /*
  * NOTE ON DUPLICATION: the format string below must match `hashPassword` in
- * lib/admin/session.ts. It is restated rather than imported because this file
+ * lib/admin/session.ts — including the `.` separator and base64url encoding,
+ * which are what keep the value pasteable into a .env file (a `$` in there is
+ * expanded by Next's env loader and silently eats most of the hash). It is restated rather than imported because this file
  * runs under bare `node`, which cannot resolve a TypeScript module or the "@/"
  * alias. tests/lib/adminAuth.test.ts asserts that a hash produced with these
  * parameters verifies, which is what keeps the two in step.
@@ -74,12 +77,77 @@ function hashPassword(password) {
         SCRYPT.N,
         SCRYPT.r,
         SCRYPT.p,
-        salt.toString("base64"),
-        derived.toString("base64"),
-    ].join("$");
+        salt.toString("base64url"),
+        derived.toString("base64url"),
+    ].join(".");
 }
 
-const supplied = process.argv[2];
+/*
+ * NOTE ON DUPLICATION, part two: the base32 encoder below must agree with
+ * `decodeBase32` in lib/admin/totp.ts, for the same reason — bare `node` cannot
+ * resolve a TypeScript module. tests/lib/totp.test.ts pins the pair against
+ * RFC 6238's published vectors, so a divergence fails there rather than at a
+ * login form at midnight.
+ */
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function generateTotpSecret() {
+    const bytes = randomBytes(20);
+    let bits = 0;
+    let value = 0;
+    let out = "";
+
+    for (const byte of bytes) {
+        value = (value << 8) | byte;
+        bits += 8;
+
+        while (bits >= 5) {
+            out += BASE32[(value >>> (bits - 5)) & 31];
+            bits -= 5;
+        }
+    }
+
+    if (bits > 0) {
+        out += BASE32[(value << (5 - bits)) & 31];
+    }
+
+    return out;
+}
+
+/** Decodes base32 and prints the code for right now, so the secret can be verified before it is trusted. */
+function currentCode(secret) {
+    let bits = 0;
+    let value = 0;
+    const key = [];
+
+    for (const char of secret) {
+        value = (value << 5) | BASE32.indexOf(char);
+        bits += 5;
+
+        if (bits >= 8) {
+            key.push((value >>> (bits - 8)) & 0xff);
+            bits -= 8;
+        }
+    }
+
+    const counter = Buffer.alloc(8);
+    const step = Math.floor(Date.now() / 1000 / 30);
+    counter.writeUInt32BE(Math.floor(step / 0x100000000), 0);
+    counter.writeUInt32BE(step >>> 0, 4);
+
+    const digest = createHmac("sha1", Buffer.from(key)).update(counter).digest();
+    const offset = digest[digest.length - 1] & 0x0f;
+    const binary =
+        ((digest[offset] & 0x7f) << 24) |
+        ((digest[offset + 1] & 0xff) << 16) |
+        ((digest[offset + 2] & 0xff) << 8) |
+        (digest[offset + 3] & 0xff);
+
+    return String(binary % 1_000_000).padStart(6, "0");
+}
+
+const wantsTotp = process.argv.includes("--totp");
+const supplied = process.argv.find((argument, index) => index >= 2 && argument !== "--totp");
 const password = supplied ?? generatePassphrase();
 
 console.log("");
@@ -109,6 +177,24 @@ const suggestedUsername = (process.env.USER ?? process.env.USERNAME ?? "admin")
 console.log(`ADMIN_USERNAME=${suggestedUsername}`);
 console.log(`ADMIN_PASSWORD_HASH=${hashPassword(password)}`);
 console.log(`ADMIN_SESSION_SECRET=${randomBytes(32).toString("base64")}`);
+
+if (wantsTotp) {
+    const secret = generateTotpSecret();
+
+    console.log(`ADMIN_TOTP_SECRET=${secret}`);
+    console.log("");
+    console.log("Scan this in your authenticator app BEFORE deploying the variable —");
+    console.log("a secret in the environment that nothing can generate codes for is a lockout:");
+    console.log("");
+    console.log(
+        `    otpauth://totp/${encodeURIComponent(`Portfolio console:${suggestedUsername}`)}` +
+            `?secret=${secret}&issuer=Portfolio%20console&algorithm=SHA1&digits=6&period=30`,
+    );
+    console.log("");
+    console.log(`The code right now is ${currentCode(secret)} — check your app agrees.`);
+}
+
 console.log("");
-console.log("Rotating ADMIN_SESSION_SECRET logs every session out everywhere.");
+console.log("To sign every device out: raise ADMIN_SESSION_EPOCH (immediate, no new secret),");
+console.log("or rotate ADMIN_SESSION_SECRET (also works, but needs a redeploy).");
 console.log("");

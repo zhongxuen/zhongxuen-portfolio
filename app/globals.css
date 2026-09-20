@@ -278,6 +278,16 @@
      * up into the gutter above it. Matches the `gap-6` (1.5rem) every card grid
      * on the site is laid out on, so a tap spans exactly the space between two
      * rows and lands on the plate above rather than stopping short of it.
+     *
+     * A tap must never run LONGER than the row gap it sits in, or it climbs
+     * past the gutter and draws over the plate above — a stray hairline down
+     * the side of a card rather than wiring between two. A grid on a tighter
+     * gap therefore sets its own: see the skill tiles and the certification
+     * plates, both laid out on `gap-3`. The override goes on the element (a
+     * `[--bp-branch:…]` utility), which is why this stays on :root — an
+     * element-level value outranks an inherited one, so a per-grid tap wins
+     * over this default. The narrow-viewport block down in BRANCH TAPS leans on
+     * the same order for the run, `--bp-branch-x`.
      */
     --bp-branch: 1.5rem;
 
@@ -1267,6 +1277,29 @@ samp {
     box-shadow: -1px -1px 0 0 var(--bp-accent);
     transform-origin: top center;
     pointer-events: none;
+}
+
+/*
+ * Narrow viewports. Below `md` the card grids are down to one or two columns of
+ * full-bleed plates, and a 2.25rem run that reads as wiring beside a 380px card
+ * in a three-up grid reads as a nick in the corner of a 358px one with nothing
+ * else in the gutter beside it.
+ *
+ * So the run is taken off a fixed length and onto a share of the plate it feeds
+ * — the figure then scales with the plate instead of shrinking against it, and
+ * the hairline crosses enough of the gutter to be read as a trace arriving
+ * rather than as a mark on the card's edge. The drop is untouched: it is the
+ * gutter's own height and already fits.
+ *
+ * On :root rather than on `.bp-branch`, deliberately. `.bp-branch` is unlayered
+ * and would outrank the `[--bp-branch-x:…]` utilities the tile grids set on the
+ * element regardless of specificity; an inherited value loses to them, which is
+ * what keeps a skill tile's 0.75rem run from being widened to 40% of a tile.
+ */
+@media (width < 48rem) {
+    :root {
+        --bp-branch-x: 40%;
+    }
 }
 
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
