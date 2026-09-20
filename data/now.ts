@@ -3,15 +3,19 @@ import type { NowEntry } from "@/types/now";
 /**
  * What is actually happening right now (docs/uiux.md §4.3).
  *
- * Every line here is traceable to something else in the repo — the internship
- * to data/experience.ts, the diploma to data/education.ts, the rebuild to this
- * tree's own git history. Nothing aspirational goes in this file: "learning
- * Rust" with no Rust anywhere in data/projects.ts is the exact claim a
- * technical reader checks first.
+ * Every line here should be traceable to something else in the repo — the
+ * internship to data/experience.ts, the diploma to data/education.ts, the
+ * rebuild to this tree's own git history. Nothing aspirational goes in this
+ * file: "learning Rust" with no Rust anywhere in data/projects.ts is the exact
+ * claim a technical reader checks first.
  *
  * Maintenance: this is the one part of the site that dates itself out loud, so
  * review it whenever data/experience.ts changes. An entry that has ended is a
  * deletion, not an edit.
+ *
+ * WRITTEN BY THE ADMIN CONSOLE (/admin/settings). The array below is re-emitted
+ * in full by lib/admin/serializeSettings.ts on every save, so a comment placed
+ * inside it will be deleted by the next one. Put notes in this header instead.
  */
 export const now: NowEntry[] = [
     {

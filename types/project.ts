@@ -52,6 +52,16 @@ export interface Project {
     /** Notable features implemented in the project */
     keyFeatures?: string[];
 
+    /**
+     * Scope limits and caveats a visitor should know before clicking through:
+     * what the project deliberately does not do, what the live link will and
+     * will not let them try, and whether the work was solo. Rendered as its own
+     * plate in the detail page's left rail (components/projects/DisclaimerPlate.tsx)
+     * rather than buried mid-paragraph, because a caveat nobody reads is not a
+     * caveat. Omit the field entirely when there is nothing honest to put in it.
+     */
+    disclaimers?: string[];
+
     /** Technical or design challenges encountered */
     challenges?: string[];
 
@@ -74,7 +84,7 @@ export interface Project {
 
     /** GitHub star count */
     stars?: number;
-        
+
     /** ISO timestamp of last repository update */
     lastUpdated?: string;
 

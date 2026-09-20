@@ -8,15 +8,9 @@ import {
     serializeJsonLd,
 } from "@/lib/structuredData";
 import { HOME_META_DESCRIPTION } from "@/lib/constants";
-import { projects } from "@/data/projects";
-import { toPaletteProjects } from "@/lib/commandPalette";
-import { getResumeMeta } from "@/lib/resume";
 import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import { THEME_COLORS, THEME_SCRIPT } from "@/lib/theme";
 import { ThemeProvider } from "@/hooks/useTheme";
-import { Navbar } from "@/components/layout/Navbar";
-import { PointerFX } from "@/components/motion/PointerFX";
-import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
 /**
@@ -124,44 +118,19 @@ export default function RootLayout({
                 />
 
                 {/*
-                 * First focusable element on the page, per docs/uiux.md §5.3.
-                 * Visually hidden until focused, then pinned above everything.
+                 * Everything between <body> and the page — skip link, drafting
+                 * grid, pointer listener, navbar, <main id="main"> and footer —
+                 * used to live here. It moved to app/(site)/layout.tsx when the
+                 * tree split into (site) and (admin) route groups: the admin
+                 * console shares this shell's fonts, tokens and theme, and
+                 * nothing else.
+                 *
+                 * ThemeProvider stays because both groups honour the same
+                 * light/dark choice, and it is deliberately paired with
+                 * THEME_SCRIPT above — the script writes the attribute before
+                 * first paint, the provider takes over afterwards.
                  */}
-                <a
-                    href="#main"
-                    className="sr-only bp-meta focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-toast focus-visible:rounded-sm focus-visible:bg-accent focus-visible:px-4 focus-visible:py-2 focus-visible:font-medium focus-visible:text-accent-ink"
-                >
-                    Skip to content
-                </a>
-
-                {/*
-                 * Decorative drafting grid — chrome only. `bp-grid-drift` is
-                 * scroll-driven and does nothing at all where
-                 * `animation-timeline` is unsupported, so the layer is static
-                 * there rather than broken.
-                 */}
-                <div className="bp-grid bp-grid-drift" aria-hidden="true" />
-
-                {/*
-                 * One pointer listener for the whole page, feeding the card
-                 * spotlight and tilt. Renders nothing; see the component for
-                 * why it is global rather than a hook per card.
-                 */}
-                <PointerFX />
-
-                <ThemeProvider>
-                    {/*
-                     * Resolved here, on the server, so the ⌘K palette can list
-                     * every project and annotate the resume with its real size
-                     * without data/projects.ts or node:fs following it into
-                     * the client bundle. Only the narrowed rows cross over.
-                     */}
-                    <Navbar projects={toPaletteProjects(projects)} resume={getResumeMeta()} />
-                    <main id="main" className="relative z-content flex-1 pt-16">
-                        {children}
-                    </main>
-                    <Footer />
-                </ThemeProvider>
+                <ThemeProvider>{children}</ThemeProvider>
 
                 {/*
                  * Analytics counts visits; Speed Insights reports the field

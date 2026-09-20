@@ -31,15 +31,37 @@ export function formatMonthYear(isoDate: string): string {
 }
 
 /**
+ * Formats an ISO timestamp as a short date and time, e.g. "20 Sep 2026, 14:32".
+ *
+ * Distinct from `formatMonthYear`, which is right for a role that lasted eight
+ * months and useless for a commit: the admin console lists several commits from
+ * the same afternoon, and "Sep 2026" cannot tell them apart. Day-month-year
+ * ordering and a 24-hour clock because the one reader is in Malaysia.
+ */
+export function formatDateTime(isoTimestamp: string): string {
+    const date = new Date(isoTimestamp);
+
+    if (Number.isNaN(date.getTime())) {
+        return isoTimestamp;
+    }
+
+    return date.toLocaleString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    });
+}
+
+/**
  * Formats a start/end date pair into a single display range,
  * handling the "Present" end-date case used by Experience/Education types.
  *
  * Example: formatDateRange("2024-06-01", "Present") -> "Jun 2024 – Present"
  */
-export function formatDateRange(
-    startDate: string,
-    endDate?: string | "Present"
-): string {
+export function formatDateRange(startDate: string, endDate?: string | "Present"): string {
     const start = formatMonthYear(startDate);
 
     if (!endDate) {
@@ -83,7 +105,7 @@ export function truncate(text: string, maxLength: number): string {
  */
 export function sortByStartDateDesc<T extends { startDate: string }>(entries: T[]): T[] {
     return [...entries].sort(
-        (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
     );
 }
 /**

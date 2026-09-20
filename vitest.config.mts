@@ -9,11 +9,26 @@ export default defineConfig({
         // Mirrors the "@/*" path mapping in tsconfig.json. A regex `find` is
         // used rather than a bare "@" key so the trailing separator on
         // `rootDir` is consumed instead of producing a doubled slash.
-        alias: [{ find: /^@\//, replacement: rootDir }],
+        alias: [
+            { find: /^@\//, replacement: rootDir },
+            /*
+             * `server-only` is not a package anything installs — Next aliases the
+             * bare specifier to a stub it ships, so `import "server-only"` works in
+             * the app and fails under Vitest with "Cannot find package". The stub is
+             * an empty module whose only job is to throw if a client bundle reaches
+             * it, so pointing at Next's copy is exactly equivalent and lets a test
+             * import a server-only module (lib/admin/*, lib/resume/render.tsx)
+             * rather than forcing those modules to drop their marker to be testable.
+             */
+            {
+                find: /^server-only$/,
+                replacement: `${rootDir}node_modules/next/dist/compiled/server-only/empty.js`,
+            },
+        ],
     },
     test: {
         environment: "node",
-        include: ["tests/**/*.test.ts"],
+        include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
         /*
          * lib/constants.ts resolves SITE_URL from the environment at import
          * time, and every canonical URL, JSON-LD @id and OG url is built from

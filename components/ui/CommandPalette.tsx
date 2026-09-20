@@ -29,7 +29,7 @@ import {
     type CopyCommand,
     type PaletteProject,
 } from "@/lib/commandPalette";
-import type { ResumeMeta } from "@/lib/resume";
+import type { ResumeMeta } from "@/lib/resume/meta";
 import type { ThemeMode } from "@/lib/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useFocusTrap } from "@/hooks/useFocusTrap";

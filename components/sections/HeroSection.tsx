@@ -7,7 +7,7 @@ import { Magnetic } from "@/components/ui/Magnetic";
 import { BlueprintSchematic } from "@/components/hero/BlueprintSchematic";
 import { Reveal } from "@/components/motion/Reveal";
 import { AUTHOR, SITE_DESCRIPTION } from "@/lib/constants";
-import type { ResumeMeta } from "@/lib/resume";
+import type { ResumeMeta } from "@/lib/resume/meta";
 import { revealDelay, stagger, WORD_STAGGER_STEP } from "@/lib/reveal";
 import { skills } from "@/data/skills";
 import { experience } from "@/data/experience";

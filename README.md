@@ -140,10 +140,45 @@ cp .env.example .env.local
 | `RESEND_API_KEY`                | Optional                   | `app/actions/contact.ts` | Enables actual email delivery from the contact form. Without it, the form validates and rate-limits as normal but sends nothing — it returns the mailto fallback described above.                                                                                                                                                                                                                                             |
 | `CONTACT_FROM_EMAIL`            | Optional                   | `app/actions/contact.ts` | Sender identity, e.g. `Name <hello@example.com>`. Defaults to Resend's shared `onboarding@resend.dev` sender, which needs no domain setup but only delivers to the Resend account owner's own address. Set this once a domain is verified.                                                                                                                                                                                    |
 | `VERCEL_PROJECT_PRODUCTION_URL` | Auto                       | `lib/constants.ts`       | Injected by Vercel. Used only as the fallback when `NEXT_PUBLIC_SITE_URL` is unset.                                                                                                                                                                                                                                                                                                                                           |
+| `ADMIN_USERNAME`                | Admin console              | `lib/admin/auth.ts`      | The single operator's username, compared in constant time. See below.                                                                                                                                                                                                                                                                                                                                                         |
+| `ADMIN_PASSWORD_HASH`           | Admin console              | `lib/admin/auth.ts`      | `scrypt$N$r$p$salt$hash`, produced by `node scripts/hash-password.mjs`. The plaintext never exists in the repo, in Vercel, or in a log line.                                                                                                                                                                                                                                                                                 |
+| `ADMIN_SESSION_SECRET`          | Admin console              | `lib/admin/session.ts`   | 32 random bytes, base64. Signs the session cookie (HMAC-SHA256). Rotating it signs every session out everywhere — it is the revoke-all button.                                                                                                                                                                                                                                                                              |
+| `GITHUB_ADMIN_TOKEN`            | Admin console              | `lib/admin/github.ts`    | A **second, separate** token from `GITHUB_TOKEN`, with write access. Without it the console loads in read-only mode and every save is refused with an explanation rather than an error.                                                                                                                                                                                                                                      |
 
-`NEXT_PUBLIC_SITE_URL` is the only variable exposed to the browser. `GITHUB_TOKEN`,
-`RESEND_API_KEY`, and `CONTACT_FROM_EMAIL` are server-only and must never be prefixed with
-`NEXT_PUBLIC_`.
+`NEXT_PUBLIC_SITE_URL` is the only variable exposed to the browser. Every other variable
+above is server-only and must never be prefixed with `NEXT_PUBLIC_`.
+
+### Admin console
+
+`/admin` is a password-protected console for editing `data/projects.ts`, the résumé and a
+few site settings without opening an editor. It writes back to this repository through the
+GitHub API; Vercel's existing integration sees the push and redeploys, so a save is a
+commit plus a build rather than an instant change. `docs/admin-plan.md` is the full design.
+
+**When any of `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH` or `ADMIN_SESSION_SECRET` is unset,
+`/admin` returns 404** — not a login page. A console with no configured password should not
+exist as a reachable surface, and a preview deploy that lacks the secrets should not
+advertise one.
+
+Set it up once:
+
+```bash
+node scripts/hash-password.mjs      # generates a passphrase and prints all three values
+```
+
+Copy the three lines into `.env.local` and into the Vercel project's environment variables.
+Then create the write token separately: a **fine-grained** personal access token scoped to
+this repository only, with **Contents: Read and write** and nothing else, and an expiry
+date. That token's blast radius is this one repository, which matters because whoever holds
+the admin password can write to it.
+
+Two things worth doing in the Vercel dashboard at the same time, neither of which is code:
+
+- a **WAF rate-limit rule on `/admin/login`**. The per-IP limiter in `lib/rateLimit.ts` is a
+  courtesy brake whose counters are per-instance and lost on cold start; a WAF rule is
+  shared across instances and takes two minutes to configure.
+- confirm the deploy hook fires on pushes to `main`, since that is what makes a save
+  visible.
 
 ## Getting Started
 

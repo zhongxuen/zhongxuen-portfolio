@@ -32,7 +32,7 @@ const chipSelected = "border-accent/45 bg-accent/8 text-accent";
 const chipInert = "cursor-not-allowed border-line/60 bg-surface-alt/40 text-ink-faint";
 
 /**
- * Technology facets for /projects (docs/improvements.md, Wave 3 Lane E).
+ * Technology facets for /projects.
  *
  * Selecting more than one technology narrows rather than widens — a project
  * must use all of them — so a chip that would empty the grid is rendered inert

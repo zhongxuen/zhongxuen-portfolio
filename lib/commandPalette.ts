@@ -4,7 +4,7 @@ import { AUTHOR } from "@/lib/constants";
 import { resolveNavHref } from "@/lib/navigation";
 import { PROJECTS_PATH } from "@/lib/projectFilters";
 import { THEME_MODES, type ThemeMode } from "@/lib/theme";
-import type { ResumeMeta } from "@/lib/resume";
+import type { ResumeMeta } from "@/lib/resume/meta";
 import type { Project } from "@/types/project";
 
 /**

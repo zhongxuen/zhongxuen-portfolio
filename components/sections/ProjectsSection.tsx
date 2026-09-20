@@ -20,7 +20,7 @@ interface ProjectsSectionProps {
 }
 
 /**
- * Featured work on the homepage (docs/improvements.md, Wave 3 Lane E).
+ * Featured work on the homepage.
  *
  * This grid used to be the same full list rendered on /projects, which left
  * the two pages duplicating each other and gave the visitor no reason to click

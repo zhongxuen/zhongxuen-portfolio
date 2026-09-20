@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { Search } from "lucide-react";
 import type { PaletteProject } from "@/lib/commandPalette";
-import type { ResumeMeta } from "@/lib/resume";
+import type { ResumeMeta } from "@/lib/resume/meta";
 import { cn } from "@/lib/utils";
 
 /*

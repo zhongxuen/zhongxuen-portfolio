@@ -35,8 +35,13 @@ function extractGitHubFields(
  * Reduces a repo name or slug to a comparable key, so that casing and
  * separator differences ("IT-ticket-helpdesk-system" vs "it_ticket_helpdesk_system")
  * still match.
+ *
+ * Exported because the admin console matches projects to repos too — the list
+ * page's repo column and lib/admin/syncDiff.ts. A second copy of this rule is
+ * how the console and the renderer come to disagree about whether a project has
+ * a repo, so there is one.
  */
-function normalizeName(value: string): string {
+export function normalizeRepoKey(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
@@ -51,7 +56,7 @@ function indexReposByIdentifier(repos: GitHubRepo[]): Map<string, GitHubRepo> {
 
     for (const repo of repos) {
         for (const identifier of [repo.name, repo.full_name]) {
-            const normalized = normalizeName(identifier);
+            const normalized = normalizeRepoKey(identifier);
 
             if (normalized && !index.has(normalized)) {
                 index.set(normalized, repo);
@@ -73,7 +78,7 @@ function repoIdentifiersFor(project: Project): string[] {
     const urlRepoName = urlSegments.length >= 2 ? urlSegments[urlSegments.length - 1] : undefined;
 
     return [project.githubRepo, urlRepoName]
-        .map((value) => (value?.trim() ? normalizeName(value) : ""))
+        .map((value) => (value?.trim() ? normalizeRepoKey(value) : ""))
         .filter((identifier) => identifier.length > 0);
 }
 

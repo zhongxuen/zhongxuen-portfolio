@@ -21,7 +21,7 @@ import { NavUnderline } from "@/components/layout/NavUnderline";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { CommandPaletteTrigger } from "@/components/ui/CommandPaletteTrigger";
 import type { PaletteProject } from "@/lib/commandPalette";
-import type { ResumeMeta } from "@/lib/resume";
+import type { ResumeMeta } from "@/lib/resume/meta";
 
 const MOBILE_PANEL_ID = "primary-navigation-panel";
 

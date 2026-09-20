@@ -1,3 +1,29 @@
+/**
+ * Availability signal rendered as the navbar pill and in the footer
+ * (docs/uiux.md §4.1). Deliberately a one-line edit: set `open` to false and
+ * every surface that reads it stops claiming availability.
+ *
+ * Off since September 2026 — the internship in data/experience.ts is running, so a
+ * pill reading "available" would contradict the timeline two screens below it.
+ * Flip `open` back to true when the placement ends and set `label` to whatever is
+ * true then.
+ *
+ * WRITTEN BY THE ADMIN CONSOLE (/admin/settings). It is its own top-level
+ * declaration rather than a nested key of AUTHOR so the settings page can rewrite
+ * a small, fully-serializable object without re-emitting a file that also holds
+ * `resolveSiteUrl()` and three paragraphs of comments
+ * (docs/admin-plan.md §9.3). `lib/admin/serializeSettings.ts` matches on the
+ * exact shape below — two keys, four-space indent — so keep it that way, and
+ * tests/lib/serializeSettings.test.ts fails loudly if it drifts.
+ *
+ * The public API is unchanged: `AUTHOR.availability.open` still resolves, because
+ * AUTHOR references this.
+ */
+export const AVAILABILITY = {
+    open: false,
+    label: "Available for internship",
+};
+
 export const AUTHOR = {
     name: "Goh Zhong Xuen",
     firstName: "Zhong Xuen",
@@ -10,20 +36,8 @@ export const AUTHOR = {
     linkedin: "https://www.linkedin.com/in/goh-zhong-xuen-14020a3b0/",
     jobstreet: "https://my.jobstreet.com/profiles/goh-zhong-xuen-GP4B6t54MG",
 
-    /**
-     * Availability signal rendered as the navbar pill and in the footer
-     * (docs/uiux.md §4.1). Deliberately a one-line edit: set `open` to false
-     * and every surface that reads it stops claiming availability.
-     *
-     * Off since September 2026 — the internship in data/experience.ts is
-     * running, so a pill reading "available" would contradict the timeline two
-     * screens below it. Flip `open` back to true when the placement ends and
-     * set `label` to whatever is true then.
-     */
-    availability: {
-        open: false,
-        label: "Available for internship",
-    },
+    /** See AVAILABILITY above — referenced rather than inlined so it can be rewritten on its own. */
+    availability: AVAILABILITY,
 };
 
 /**
@@ -118,5 +132,10 @@ export const SITE_URL = resolveSiteUrl();
  * index) used in app/sitemap.ts. Update this when the page content changes
  * meaningfully — do not replace with `new Date()`, which regenerates a
  * fresh "modified today" timestamp on every build and misleads crawlers.
+ *
+ * That is exactly why the admin console has a "bump to today" button for it: the
+ * constant exists so it is *not* automatic, which means it needs a human, which
+ * means it needs to be one press rather than a code change nobody remembers to
+ * make.
  */
 export const SITE_LAST_MODIFIED = "2026-09-02";
