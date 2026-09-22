@@ -7,37 +7,70 @@ import type { ResumeConfig } from "@/types/resume";
  * full by lib/admin/serializeResumeConfig.ts on every save, so a comment placed
  * inside it will be deleted by the next one. Put notes in this header instead.
  *
- * These are the levers for the one-page target. `maxProjects`,
- * `maxBulletsPerRole` and `skillCategories` are what get pulled when the preview
- * reports two pages — not the type size, which is already at the floor of what
- * prints legibly.
+ * Two-page budget (`maxPages`). The one-page layout this replaced cut every
+ * project to one trimmed line and dropped coursework, honours, soft skills and
+ * languages — a thinner document than the hand-made CV it was meant to replace.
+ * If the preview reports more than two pages, the levers are `maxProjects`,
+ * `maxFeaturesPerProject` and `featureMaxChars`, in that order.
+ *
+ * `highlights`, `softSkills`, `languages`, `interests` and `availability` are the
+ * résumé-only facts: an employer expects them on a CV and the site has no other
+ * home for them. Every highlight should be checkable against data/experience.ts,
+ * data/education.ts or a project's key features.
+ *
+ * `maxRoles` is 3, so the 2022–2023 pharmacy assistant role is included: it is
+ * real, dated work that shows customer-facing reliability, and the hand-made CV
+ * carried it too. Drop to 2 for a strictly technical application.
  */
 export const resumeConfig: ResumeConfig = {
     summary:
-        "Final-semester Software Engineering student at Asia Pacific University, interning as a frontend developer. I build full-stack applications end to end, and care most about the parts usually skipped: enforced architectural boundaries, tested accessibility, and writing down what a project does not do.",
-    maxProjects: 4,
-    /*
-     * Two of the three roles in data/experience.ts. The omitted one is the
-     * 2022–2023 part-time pharmacy assistant job — real, dated work that belongs on
-     * the site's timeline and not on a résumé for a software role.
-     *
-     * It also buys the layout its margin. Measured against A4's 841.89pt of page
-     * height: at 2 roles the document needs 768pt, at 3 it needs 836pt. Three
-     * roles technically fits, with six points to spare — one extra word in one
-     * bullet and it is two pages. The console shows the real counts on
-     * /admin/resume, so this is a stated omission rather than a hidden one.
-     */
-    maxRoles: 2,
+        "Software Engineering diploma student at Asia Pacific University (CGPA 3.72, Distinction), currently a Frontend Web Developer Intern at TED Optimus. I design, build and ship full-stack products end to end — web, mobile, desktop and AI — and care most about the parts usually skipped: enforced architecture, automated testing, tested accessibility and clear documentation.",
+    highlights: [
+        "Building production user-facing features and reusable component libraries as a Frontend Web Developer Intern at TED Optimus.",
+        "Full-stack range: Next.js and React front ends; FastAPI, Supabase and PostgreSQL back ends; React Native mobile; Tauri and Rust desktop.",
+        "Ships LLM features in real products — an AI mentor on the Claude API, and a Gemini-to-local-Ollama router with automatic failover.",
+        "Quality by default: ESLint-enforced architecture boundaries, deterministic simulation tests, and Playwright + axe accessibility checks on every route.",
+    ],
+    maxPages: 2,
+    maxProjects: 6,
+    maxFeaturesPerProject: 2,
+    featureMaxChars: 110,
+    projectSummaryMaxChars: 260,
+    listRemainingProjects: true,
+    maxRoles: 3,
     maxBulletsPerRole: 4,
-    projectSummaryMaxChars: 130,
-    /*
-     * The four categories data/skills.ts actually populates, in rail order.
-     * "Frontend" and "Backend" are in the SkillCategory union and have no members
-     * — every React and Next.js entry is filed under Frameworks — so listing them
-     * here printed two empty headings, which is how this list was first written and
-     * why it is worth naming.
-     */
-    skillCategories: ["Programming Languages", "Frameworks", "Databases", "Developer Tools"],
+    skillCategories: [
+        "Programming Languages",
+        "Frameworks",
+        "Databases",
+        "AI & LLMs",
+        "Developer Tools",
+        "Networking & Cloud",
+        "Other Technologies",
+    ],
+    skillCategoryLabels: {
+        Frameworks: "Frameworks & Libraries",
+        "Developer Tools": "Tools & Testing",
+        "Networking & Cloud": "Networking",
+        "Other Technologies": "Digital Forensics",
+    },
+    softSkills: [
+        "Problem Solving & Analytical Thinking",
+        "Teamwork & Cross-functional Collaboration",
+        "Communication & Presentation",
+        "Time Management & Self-directed Learning",
+        "Attention to Detail",
+        "Customer Service",
+    ],
+    languages: ["English (Fluent)", "Chinese (Native)", "Malay (Basic)"],
+    interests: [
+        "Software development",
+        "UI/UX design",
+        "Cybersecurity",
+        "AI & emerging technologies",
+    ],
+    availability:
+        "Open to full-time software engineering roles after the internship concludes on 23 October 2026.",
     includeCertifications: true,
     includeQrCode: true,
 };

@@ -1,5 +1,5 @@
 import { Text, View } from "@react-pdf/renderer";
-import { Bullet, SectionLabel } from "@/lib/resume/sections/Primitives";
+import { Bullet, Chips, Section } from "@/lib/resume/sections/Primitives";
 import { styles } from "@/lib/resume/theme";
 import type { ResumeRole } from "@/lib/resume/model";
 
@@ -22,9 +22,7 @@ export function Experience({ roles }: { roles: ResumeRole[] }) {
     }
 
     return (
-        <View style={styles.section}>
-            <SectionLabel>Experience</SectionLabel>
-
+        <Section label="Work Experience">
             {roles.map((role) => (
                 <View key={`${role.company}-${role.role}`} style={styles.entry} wrap={false}>
                     <View style={styles.entryHeader}>
@@ -33,15 +31,18 @@ export function Experience({ roles }: { roles: ResumeRole[] }) {
                     </View>
 
                     <Text style={styles.entryMeta}>
-                        {role.company}
-                        {role.location ? ` · ${role.location}` : ""}
+                        {[role.company, role.employmentType, role.location]
+                            .filter(Boolean)
+                            .join(" · ")}
                     </Text>
 
                     {role.bullets.map((bullet) => (
                         <Bullet key={bullet}>{bullet}</Bullet>
                     ))}
+
+                    <Chips items={role.technologies} />
                 </View>
             ))}
-        </View>
+        </Section>
     );
 }

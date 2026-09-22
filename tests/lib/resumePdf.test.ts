@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { projects } from "@/data/projects";
+import { resumeConfig } from "@/data/resume";
 import { renderResume } from "@/lib/resume/render";
 
 /**
@@ -12,20 +13,21 @@ import { renderResume } from "@/lib/resume/render";
  * What it is actually guarding, all of which were real bugs found by extracting
  * the text of a rendered file:
  *
- *  - **One page.** The layout has about 70pt of headroom on A4 and no automatic
- *    defence: a longer summary or a third role spills silently onto page two, and
- *    nobody looks at a résumé's page count until someone else does.
+ *  - **The page budget.** `resumeConfig.maxPages` (two) has no automatic
+ *    defence: a longer summary or a seventh project spills silently onto another
+ *    page, and nobody looks at a résumé's page count until someone else does.
+ *    When this fails, pull a lever in data/resume.ts — `maxProjects` first.
  *  - **The fonts are embedded.** If `public/fonts/` is missing from the function
  *    bundle — the failure `outputFileTracingIncludes` exists to prevent —
  *    `@react-pdf` falls back to Helvetica without complaining.
  *  - **The metadata is set**, because some ATS parsers read it before the body.
  */
 describe("renderResume", () => {
-    it("renders a single-page PDF", async () => {
+    it("renders a PDF inside the page budget", async () => {
         const { bytes, pageCount } = await renderResume(projects);
 
         expect(Buffer.from(bytes.subarray(0, 5)).toString("latin1")).toBe("%PDF-");
-        expect(pageCount).toBe(1);
+        expect(pageCount).toBeLessThanOrEqual(resumeConfig.maxPages);
     }, 60_000);
 
     it("embeds the site's three faces rather than falling back to Helvetica", async () => {

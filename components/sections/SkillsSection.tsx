@@ -5,6 +5,8 @@ import { SkillCategoryFilter } from "@/components/skills/SkillCategoryFilter";
 import { Reveal } from "@/components/motion/Reveal";
 import { skills } from "@/data/skills";
 import { Skill, SkillCategory } from "@/types/skill";
+import type { Project } from "@/types/project";
+import { buildProjectsHref, filterProjectsByTech } from "@/lib/projectFilters";
 import { revealDelay, stagger } from "@/lib/reveal";
 import { slugify } from "@/lib/utils";
 
@@ -53,8 +55,12 @@ const categories = grouped.map(([name, categorySkills]) => ({
  * Still a Server Component, and still zero client JavaScript: the filter is a
  * radio group driving CSS `:has()` rules (see SkillCategoryFilter), and the
  * entrance cascade is the shared `[data-reveal]` choreography.
+ *
+ * A skill whose name is also a project technology links to /projects filtered
+ * by it, through the same matcher the filter itself uses — so a tile only links
+ * where the filter it lands on is non-empty.
  */
-export function SkillsSection() {
+export function SkillsSection({ projects }: { projects: Project[] }) {
     return (
         <Container
             as="section"
@@ -112,28 +118,42 @@ export function SkillsSection() {
                              * all of them firing off the first one.
                              */}
                             <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                                {categorySkills.map((skill, index) => (
-                                    <div
-                                        key={skill.id}
-                                        data-reveal="pop"
-                                        style={revealDelay(stagger(index))}
-                                        /*
-                                         * A tile is a third the width of a
-                                         * project card, so the trace is pulled
-                                         * in to match its 0.75rem padding —
-                                         * at the card default it would land
-                                         * past the glyph it points at. The tap
-                                         * is cut to this grid's `gap-3` for
-                                         * the same reason: at the card default
-                                         * it is twice the gutter it has to
-                                         * cross, so on every row but the first
-                                         * it climbs over the tile above.
-                                         */
-                                        className="bp-branch [--bp-branch:0.75rem] [--bp-branch-x:0.75rem]"
-                                    >
-                                        <SkillCard skill={skill} />
-                                    </div>
-                                ))}
+                                {categorySkills.map((skill, index) => {
+                                    const projectCount = filterProjectsByTech(projects, [
+                                        skill.name,
+                                    ]).length;
+
+                                    return (
+                                        <div
+                                            key={skill.id}
+                                            data-reveal="pop"
+                                            style={revealDelay(stagger(index))}
+                                            /*
+                                             * A tile is a third the width of a
+                                             * project card, so the trace is pulled
+                                             * in to match its 0.75rem padding —
+                                             * at the card default it would land
+                                             * past the glyph it points at. The tap
+                                             * is cut to this grid's `gap-3` for
+                                             * the same reason: at the card default
+                                             * it is twice the gutter it has to
+                                             * cross, so on every row but the first
+                                             * it climbs over the tile above.
+                                             */
+                                            className="bp-branch [--bp-branch:0.75rem] [--bp-branch-x:0.75rem]"
+                                        >
+                                            <SkillCard
+                                                skill={skill}
+                                                href={
+                                                    projectCount > 0
+                                                        ? buildProjectsHref({ tech: [skill.name] })
+                                                        : undefined
+                                                }
+                                                projectCount={projectCount}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </Reveal>
                         </section>
                     );

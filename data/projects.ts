@@ -48,7 +48,6 @@ export const projects: Project[] = [
             "Everything on screen is a deterministic client-side simulation. The one exception is Network Diagnostics' Live mode, which is off until you switch it on, names the exact URL before requesting it, and is visibly badged the whole time it runs.",
             "There is no cryptography anywhere in the TLS layer — the handshake is modelled, not performed. It is the largest of the deliberate simplifications, and all of them are written down in the repo's docs/ACCURACY.md.",
             "There is no live traceroute: a serverless runtime cannot send ICMP, and faking one would be worse than leaving it out.",
-            "The repository has no licence chosen yet, so the source is readable but not cleared for reuse.",
         ],
         featured: true,
         order: 1,
@@ -205,7 +204,15 @@ export const projects: Project[] = [
             "A Next.js web app that signs in to Gmail, finds GrabExpress delivery receipt emails specifically, and exports them as a formatted .xlsx spreadsheet — with a demo mode that runs the whole pipeline without a sign-in.",
         longDescription:
             "Web app, deployed on Vercel, that lets any Gmail user sign in with Google, finds GrabExpress receipt emails by subject line — since those receipts are often forwarded rather than sent directly — parses the receipt data out of the email HTML with cheerio, and downloads the results as a formatted .xlsx file built in memory with exceljs. There is no database, no local token file, no OCR and no PDF scraping: the session lives in an encrypted cookie and the spreadsheet is streamed straight back to the browser. A built-in Demo Mode runs the full parse → dedupe → export pipeline against bundled synthetic sample receipts with no sign-in and no real Gmail access, which matters because the app requests a sensitive OAuth scope that Google gates to approved test users until verification.",
-        technologies: ["Next.js", "TypeScript", "NextAuth.js", "Gmail API", "cheerio", "exceljs"],
+        technologies: [
+            "Next.js",
+            "TypeScript",
+            "React",
+            "NextAuth.js",
+            "Gmail API",
+            "cheerio",
+            "exceljs",
+        ],
         githubUrl: "https://github.com/zhongxuen/GrabExpress-Receipt-Collector",
         githubRepo: "GrabExpress-Receipt-Collector",
         liveUrl: "https://grab-express-receipt-collector-sigma.vercel.app/?demo=1",
@@ -285,6 +292,7 @@ export const projects: Project[] = [
         technologies: [
             "Next.js",
             "TypeScript",
+            "React",
             "Supabase",
             "PostgreSQL",
             "Tailwind CSS",

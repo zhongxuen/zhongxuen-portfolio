@@ -1,3 +1,4 @@
+import { Children, type ReactNode } from "react";
 import { Link, Text, View } from "@react-pdf/renderer";
 import { ink, mm, styles, tick } from "@/lib/resume/theme";
 import { buildQrCode } from "@/lib/resume/qr";
@@ -16,9 +17,37 @@ export function SectionLabel({ children }: { children: string }) {
     return <Text style={styles.sectionLabel}>{children}</Text>;
 }
 
-/** The rail's own, tighter label — no rule, because the tint already bounds it. */
-export function RailLabel({ children }: { children: string }) {
-    return <Text style={styles.railLabel}>{children}</Text>;
+/**
+ * A titled section whose label cannot be stranded.
+ *
+ * The label and the first child share one unbreakable View, so when the first
+ * entry moves to the next page the heading moves with it. A heading alone at
+ * the foot of a page, its content overleaf, is the classic generated-CV tell —
+ * and `minPresenceAhead` did not prevent it here: the first render of the
+ * two-page layout left "EDUCATION" by itself at the bottom of page two.
+ */
+export function Section({ label, children }: { label: string; children: ReactNode }) {
+    const [first, ...rest] = Children.toArray(children);
+
+    return (
+        <View style={styles.section}>
+            <View wrap={false}>
+                <SectionLabel>{label}</SectionLabel>
+                {first}
+            </View>
+            {rest}
+        </View>
+    );
+}
+
+/** One label/value row of a table — skills, additional information. */
+export function FactRow({ label, children }: { label: string; children: string }) {
+    return (
+        <View style={styles.factRow} wrap={false}>
+            <Text style={styles.factLabel}>{label}</Text>
+            <Text style={styles.factValue}>{children}</Text>
+        </View>
+    );
 }
 
 /**
@@ -98,12 +127,12 @@ export function CornerTicks() {
 }
 
 /**
- * The footer QR code, drawn as vector rectangles.
+ * The header QR code, drawn as vector rectangles.
  *
  * Settled 2026-09-20 (docs/admin-plan.md §14): worth the 14 mm on a printed copy,
- * where the footer URL is otherwise something to retype. It is the résumé's one
+ * where the portfolio URL is otherwise something to retype. It is the résumé's one
  * non-text element, and it is allowed to be one because it carries no information
- * of its own — the URL it encodes is printed as text right beside it, so a parser
+ * of its own — the URL it encodes is printed as text in the contact row, so a parser
  * that ignores it loses nothing.
  */
 export function QrBlock({ url, size = mm(14) }: { url: string; size?: number }) {

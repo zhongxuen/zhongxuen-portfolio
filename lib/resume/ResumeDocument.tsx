@@ -9,29 +9,39 @@ import { Projects } from "@/lib/resume/sections/Projects";
 import { Skills } from "@/lib/resume/sections/Skills";
 import { Education } from "@/lib/resume/sections/Education";
 import { Certifications } from "@/lib/resume/sections/Certifications";
+import { Additional } from "@/lib/resume/sections/Additional";
 import type { ResumeModel } from "@/lib/resume/model";
 
 /**
  * The résumé document (docs/admin-plan.md §8.3).
  *
  * Layout only — every decision about what appears and in what order was made by
- * `buildResumeModel()`. Two zones: a main column at roughly 64% carrying Summary,
- * Experience and Projects, and a tinted rail at 32% carrying Skills, Education and
- * Certifications.
+ * `buildResumeModel()`. One column at full width, flowing across up to
+ * `resumeConfig.maxPages` pages: header and headline figures, then Profile
+ * Summary → Work Experience → Technical Skills → Projects → Education →
+ * Certifications → Additional Information.
  *
- * **The main column is first in the element tree, and that is load-bearing.**
- * Extracted text order follows the tree, so an ATS reading this as plain text gets
- * Summary → Experience → Projects → Skills → Education — a correctly ordered
- * résumé. Putting the rail first would look identical and parse as gibberish.
+ * Skills sit above Projects for two reasons: a recruiter screening for a stack
+ * finds it in the first half of page one, and the table's small unbreakable
+ * rows fill the space a whole project entry (`wrap={false}`) would otherwise
+ * leave empty at the foot of the page.
+ *
+ * **Why one column.** The earlier layout put skills and education in a tinted
+ * rail beside the main column. That works on exactly one page — `@react-pdf`
+ * cannot flow two side-by-side columns across a page break — and one page is
+ * what forced every project down to a single trimmed line. A single column
+ * flows cleanly, and extracted text order is simply document order, which is
+ * the best possible case for an ATS.
  *
  * The rest of the ATS contract, all of it visible below:
  *   - every character is real embedded text; nothing is an image, no icon fonts,
- *     no text inside SVG. The footer QR is the single exception and carries no
- *     information of its own — the URL is printed as text beside it.
+ *     no text inside SVG. The header QR is the single exception and carries no
+ *     information of its own — the portfolio URL is printed in the contact row.
  *   - conventional section names (EXPERIENCE, PROJECTS, SKILLS, EDUCATION),
  *     styled unconventionally.
  *   - contact details in the body, never in a running header, because some
- *     parsers discard a repeating header entirely.
+ *     parsers discard a repeating header entirely. Only the footer repeats, and
+ *     it carries nothing that is not also in the body.
  *   - document metadata set, because some parsers read it first.
  */
 export function ResumeDocument({
@@ -62,8 +72,20 @@ export function ResumeDocument({
                 <Text style={styles.documentCode}>{model.documentCode}</Text>
 
                 <View>
-                    <Text style={styles.name}>{model.name}</Text>
-                    <Text style={styles.headline}>{model.headline}</Text>
+                    <View style={styles.headerRow}>
+                        <View style={{ flexGrow: 1, flexBasis: 0 }}>
+                            <Text style={styles.name}>{model.name}</Text>
+                            <Text style={styles.headline}>{model.headline}</Text>
+                        </View>
+
+                        {model.includeQrCode && (
+                            <View>
+                                <QrBlock url={absoluteSiteUrl(model.siteUrl)} size={mm(15)} />
+                                <Text style={styles.qrCaption}>PORTFOLIO</Text>
+                            </View>
+                        )}
+                    </View>
+
                     <View style={styles.headerRule} />
 
                     {/*
@@ -84,41 +106,51 @@ export function ResumeDocument({
                             </View>
                         ))}
                     </View>
+
+                    {model.stats.length > 0 && (
+                        <View style={styles.statRow}>
+                            {model.stats.map((stat, index) => (
+                                <View
+                                    key={stat.label}
+                                    style={[
+                                        styles.statCell,
+                                        index === 0 ? { borderLeftWidth: 0 } : {},
+                                    ]}
+                                >
+                                    <Text style={styles.statValue}>{stat.value}</Text>
+                                    <Text style={styles.statLabel}>{stat.label}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.body}>
-                    {/* Main column — FIRST in the tree. See the note above. */}
-                    <View style={styles.main}>
-                        <Summary text={model.summary} />
-                        <Experience roles={model.experience} />
-                        <Projects projects={model.projects} />
-                    </View>
-
-                    <View style={styles.rail}>
-                        <Skills groups={model.skills} />
-                        <Education entries={model.education} />
-                        <Certifications entries={model.certifications} />
-                    </View>
+                    <Summary
+                        text={model.summary}
+                        highlights={model.highlights}
+                        availability={model.availability}
+                    />
+                    <Experience roles={model.experience} />
+                    <Projects
+                        projects={model.projects}
+                        more={model.moreProjects}
+                        siteUrl={model.siteUrl}
+                    />
+                    <Education entries={model.education} />
+                    <Skills groups={model.skills} />
+                    <Certifications entries={model.certifications} />
+                    <Additional facts={model.additional} />
                 </View>
 
-                <View style={styles.footer}>
-                    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: mm(2.5) }}>
-                        {model.includeQrCode && <QrBlock url={absoluteSiteUrl(model.siteUrl)} />}
-                        <Text style={styles.footerText}>{model.siteUrl}</Text>
-                    </View>
-
-                    {/*
-                     * `render` gives the callback the real page numbers, so a
-                     * document that runs long says "2 / 2" rather than lying.
-                     *
-                     * Deliberately **not** `fixed`. A `fixed` child inside this flex
-                     * row is dropped from the output entirely — the first version of
-                     * this file shipped a footer with no page number at all, which
-                     * only showed up when the rendered PDF's text was extracted. It
-                     * would also have been the wrong behaviour: the footer itself is
-                     * in normal flow, so a page counter that repeated while the URL
-                     * and QR beside it did not would be stranded on page two.
-                     */}
+                {/*
+                 * The footer is `fixed` and absolutely positioned, so it repeats on
+                 * every page outside the flow. The page counter is a `render` Text,
+                 * which is why the Page style must carry no `lineHeight` (see
+                 * `styles.page`) — with one inherited, this node renders nothing.
+                 */}
+                <View style={styles.footer} fixed>
+                    <Text style={styles.footerText}>{`${model.name} · ${model.siteUrl}`}</Text>
                     <Text
                         style={styles.footerText}
                         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}

@@ -137,6 +137,11 @@ const SKILLS_HEADER = `import { Skill } from "@/types/skill";
  * which is exactly why tests/data/integrity.test.ts asserts the map covers every
  * entry, and why /admin/career warns about one rather than blocking the save.
  *
+ * \`name\` doubles as the link into the /projects technology filter: a skill whose
+ * name matches an entry in some project's \`technologies\` (case-insensitive) renders
+ * as a link to /projects?tech=<name>. Spell a skill the way data/projects.ts does
+ * — "Next.js", not "NextJS" — or it silently stops linking.
+ *
  * WRITTEN BY THE ADMIN CONSOLE (/admin/career). The array below is re-emitted in
  * full by lib/admin/serializeCareer.ts on every save, so a comment placed inside
  * it will be deleted by the next one — including the category headings this file

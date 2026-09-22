@@ -46,13 +46,69 @@ describe("buildResumeModel", () => {
         expect(model.contacts.every((contact) => contact.value.trim().length > 0)).toBe(true);
     });
 
-    it("only lists skill categories that data/skills.ts actually populates", () => {
+    it("only lists skill categories that data/skills.ts actually populates, then soft skills", () => {
         const populated = new Set(skills.map((skill) => skill.category));
-        const requested = resumeConfig.skillCategories.filter((category) =>
-            populated.has(category),
-        );
+        const requested = resumeConfig.skillCategories
+            .filter((category) => populated.has(category))
+            .map((category) => resumeConfig.skillCategoryLabels[category] ?? category);
 
-        expect(model.skills.map((group) => group.category)).toEqual(requested);
+        expect(model.skills.map((group) => group.category)).toEqual([
+            ...requested,
+            ...(resumeConfig.softSkills.length > 0 ? ["Soft Skills"] : []),
+        ]);
+    });
+
+    /**
+     * The header figures are counted, never typed. A "13 projects" that the
+     * linked site contradicts costs more credibility than it buys.
+     */
+    it("counts the header figures from the data it is given", () => {
+        const stat = (label: string) => model.stats.find((s) => s.label === label)?.value;
+
+        expect(stat("Projects built")).toBe(String(projects.length));
+        expect(stat("Live deployments")).toBe(
+            String(projects.filter((project) => project.liveUrl).length),
+        );
+    });
+
+    it("gives each project its key features, capped and trimmed", () => {
+        for (const project of model.projects) {
+            expect(project.features.length).toBeLessThanOrEqual(resumeConfig.maxFeaturesPerProject);
+
+            for (const feature of project.features) {
+                expect(feature.length).toBeLessThanOrEqual(resumeConfig.featureMaxChars + 1);
+                expect((feature.match(/\(/g) ?? []).length).toBe(
+                    (feature.match(/\)/g) ?? []).length,
+                );
+            }
+        }
+    });
+
+    it("links both the live site and the repository, with real targets", () => {
+        const jobNow = model.projects.find((project) => project.title === "JobNow");
+
+        expect(jobNow?.links.map((link) => link.label)).toEqual(["Live", "Code"]);
+        expect(jobNow?.links[0].value).toBe("job-now-navy.vercel.app");
+
+        for (const link of model.projects.flatMap((project) => project.links)) {
+            expect(() => new URL(link.href)).not.toThrow();
+        }
+    });
+
+    it("names every project that does not get a full entry", () => {
+        expect(model.projects.length + model.moreProjects.length).toBe(projects.length);
+    });
+
+    it("prints full education detail: honours and coursework", () => {
+        const diploma = model.education.find((entry) => entry.institution.includes("APU"));
+
+        expect(diploma?.details.join(" ")).toContain("3.72");
+        expect(diploma?.coursework).toContain("Database Systems");
+    });
+
+    it("translates the arrow the fonts cannot draw rather than dropping it", () => {
+        expect(JSON.stringify(model)).not.toContain("→");
+        expect(JSON.stringify(model.projects)).toContain("Gemini to local Ollama");
     });
 
     it("prints URLs without their scheme but links the full one", () => {
@@ -115,6 +171,33 @@ describe("buildResumeModel", () => {
 });
 
 describe("trimSummary", () => {
+    it("cuts at a phrase boundary before an ellipsis", () => {
+        expect(
+            trimSummary(
+                "Routines that launch a saved set of apps together in one click, plus shareable templates that import safely",
+                80,
+            ),
+        ).toBe("Routines that launch a saved set of apps together in one click");
+    });
+
+    it("never cuts inside an open bracket", () => {
+        const trimmed = trimSummary(
+            "Ten modules: eight protocol explorers (network map, packet journey, DNS, HTTP, and a page-load simulator), a diagnostics tool",
+            100,
+        );
+
+        expect(trimmed).toBe("Ten modules: eight protocol explorers");
+    });
+
+    it("does not keep a clause so short it drops the point", () => {
+        const trimmed = trimSummary(
+            "Deterministic kernel — protocol logic is pure TypeScript emitting typed events on a virtual clock, with no DOM",
+            100,
+        );
+
+        expect(trimmed).not.toBe("Deterministic kernel");
+    });
+
     it("leaves a short line alone", () => {
         expect(trimSummary("Short enough.", 130)).toBe("Short enough.");
     });

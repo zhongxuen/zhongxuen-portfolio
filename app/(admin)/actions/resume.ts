@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin/github";
 import { loadProjectsFile } from "@/lib/admin/projectStore";
 import { renderResume } from "@/lib/resume/render";
+import { resumeConfig } from "@/data/resume";
 import type { ResumeActionState } from "@/types/admin";
 
 /**
@@ -43,9 +44,9 @@ export async function regenerateResume(
         return {
             status: "success",
             message:
-                pageCount === 1
-                    ? "Rendered one page. Nothing has been committed — review it, then commit."
-                    : `Rendered ${pageCount} pages. The target is one: lower maxProjects, maxRoles or projectSummaryMaxChars in data/resume.ts. Nothing has been committed.`,
+                pageCount <= resumeConfig.maxPages
+                    ? `Rendered ${pageCount} ${pageCount === 1 ? "page" : "pages"}. Nothing has been committed — review it, then commit.`
+                    : `Rendered ${pageCount} pages. The budget is ${resumeConfig.maxPages}: lower maxProjects, maxFeaturesPerProject or featureMaxChars in data/resume.ts. Nothing has been committed.`,
             preview: {
                 dataUrl: `data:application/pdf;base64,${Buffer.from(bytes).toString("base64")}`,
                 pageCount,

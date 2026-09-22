@@ -26,7 +26,7 @@ import { IDLE_RESUME } from "@/types/admin";
  * has already been sent to someone should not be a side effect of pressing
  * "preview".
  */
-export function ResumePanel({ canWrite }: { canWrite: boolean }) {
+export function ResumePanel({ canWrite, maxPages }: { canWrite: boolean; maxPages: number }) {
     const [renderState, renderAction, rendering] = useActionState(regenerateResume, IDLE_RESUME);
     const [commitState, commitAction, committing] = useActionState(
         commitGeneratedResume,
@@ -46,7 +46,10 @@ export function ResumePanel({ canWrite }: { canWrite: boolean }) {
                         <code className="font-mono">data/experience.ts</code>,{" "}
                         <code className="font-mono">data/education.ts</code>,{" "}
                         <code className="font-mono">data/skills.ts</code> and the current project
-                        list, laid out in the site&rsquo;s own typography. Curation lives in{" "}
+                        list — headline figures, summary and highlights, every role, projects with
+                        their key features and links, education with honours and coursework, the
+                        full skills table, languages and availability — laid out in the site&rsquo;s
+                        own typography. Curation lives in{" "}
                         <code className="font-mono">data/resume.ts</code>. No language model is
                         involved — a résumé has to be factually exact, and every word here already
                         exists somewhere in the repository.
@@ -68,7 +71,7 @@ export function ResumePanel({ canWrite }: { canWrite: boolean }) {
 
                 {preview && (
                     <div className="flex flex-col gap-3">
-                        {preview.pageCount !== 1 && (
+                        {preview.pageCount > maxPages && (
                             <p className="flex items-start gap-2.5 rounded-sm border border-signal/40 bg-signal/10 p-3 text-sm leading-relaxed text-ink">
                                 <TriangleAlert
                                     size={16}
@@ -76,15 +79,14 @@ export function ResumePanel({ canWrite }: { canWrite: boolean }) {
                                     className="mt-0.5 shrink-0 text-signal"
                                 />
                                 <span>
-                                    {preview.pageCount} pages. The target is one — pull a lever in{" "}
+                                    {preview.pageCount} pages. The budget is {maxPages} — pull a
+                                    lever in{" "}
                                     <code className="font-mono text-xs">data/resume.ts</code>:{" "}
                                     <code className="font-mono text-xs">maxProjects</code>,{" "}
-                                    <code className="font-mono text-xs">maxRoles</code>,{" "}
-                                    <code className="font-mono text-xs">maxBulletsPerRole</code> or{" "}
-                                    <code className="font-mono text-xs">
-                                        projectSummaryMaxChars
-                                    </code>
-                                    . Better to know now than after someone downloads it.
+                                    <code className="font-mono text-xs">maxFeaturesPerProject</code>
+                                    , <code className="font-mono text-xs">featureMaxChars</code> or{" "}
+                                    <code className="font-mono text-xs">maxRoles</code>. Better to
+                                    know now than after someone downloads it.
                                 </span>
                             </p>
                         )}

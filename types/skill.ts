@@ -18,6 +18,7 @@ export type SkillCategory =
     | "Databases"
     | "Frameworks"
     | "Developer Tools"
+    | "AI & LLMs"
     | "Networking & Cloud"
     | "Other Technologies";
 

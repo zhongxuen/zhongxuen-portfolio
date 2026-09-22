@@ -103,6 +103,12 @@ export const mm = (value: number) => value * 2.834645669;
 
 export const PAGE_MARGIN = mm(14);
 
+/** Top margin. Tighter than the sides: the corner ticks already frame the page. */
+export const PAGE_TOP = mm(12);
+
+/** Room for the fixed footer, so flowing content never runs under it. */
+export const PAGE_BOTTOM = mm(16);
+
 /**
  * The type scale.
  *
@@ -111,13 +117,12 @@ export const PAGE_MARGIN = mm(14);
  * 7pt, which is the floor for reliable laser printing.
  */
 /*
- * SPACING NOTE. Every gap below was tightened once, deliberately, after the first
- * render came out at two pages with four projects and three roles. The generous
- * web rhythm (`--bp-section-y` is 72–128px) does not transfer to A4: there is one
- * page, and whitespace spent between sections is content that does not fit. The
- * values here are the print equivalents — roughly 3 mm between sections, 2 mm
- * between entries — and lowering them further starts to run blocks together.
- * `data/resume.ts` is the lever to pull after that, not this file.
+ * SPACING NOTE. The generous web rhythm (`--bp-section-y` is 72–128px) does not
+ * transfer to A4: the budget is `resumeConfig.maxPages`, and whitespace spent
+ * between sections is content that does not fit. The values here are the print
+ * equivalents — roughly 2.6 mm between sections, 1.7 mm between entries — and
+ * lowering them further starts to run blocks together. `data/resume.ts` is the
+ * lever to pull after that, not this file.
  */
 export const styles = StyleSheet.create({
     /**
@@ -137,8 +142,8 @@ export const styles = StyleSheet.create({
         color: ink.ink,
         fontFamily: "Inter",
         fontSize: 9,
-        paddingTop: PAGE_MARGIN,
-        paddingBottom: PAGE_MARGIN,
+        paddingTop: PAGE_TOP,
+        paddingBottom: PAGE_BOTTOM,
         paddingHorizontal: PAGE_MARGIN,
     },
 
@@ -194,33 +199,65 @@ export const styles = StyleSheet.create({
         marginHorizontal: 4,
     },
 
-    body: {
+    /** Name block on the left, QR on the right. */
+    headerRow: {
         flexDirection: "row",
-        marginTop: mm(3.5),
+        justifyContent: "space-between",
+        alignItems: "flex-end",
         gap: mm(4),
-        /*
-         * Grows so the footer is pushed to the bottom of the page rather than
-         * floating directly under the last section. A Page is a flex column in
-         * @react-pdf, so this is all it takes.
-         */
-        flexGrow: 1,
+    },
+
+    qrCaption: {
+        fontFamily: "PlexMono",
+        fontSize: 6,
+        letterSpacing: 0.4,
+        color: ink.faint,
+        textAlign: "center",
+        marginTop: mm(0.8),
     },
 
     /**
-     * The main column is **first in the element tree**, which is the single most
-     * important line in this file for ATS survival: extracted text order follows
-     * the tree, so a parser reads Summary → Experience → Projects → Skills →
-     * Education, which is a correctly-ordered plain-text résumé.
+     * The headline figures. Bordered cells in a row — the print form of the
+     * site's spec-sheet readouts — with the number in the display face and the
+     * accent, because it is the first thing a skimming reader should land on.
      */
-    main: {
-        flexGrow: 1,
-        flexBasis: 0,
+    statRow: {
+        flexDirection: "row",
+        marginTop: mm(3),
+        borderWidth: 0.5,
+        borderColor: ink.lineStrong,
+        backgroundColor: ink.rail,
     },
 
-    rail: {
-        width: "32%",
-        backgroundColor: ink.rail,
-        padding: mm(3),
+    statCell: {
+        flexGrow: 1,
+        flexBasis: 0,
+        paddingVertical: mm(1.6),
+        paddingHorizontal: mm(2.5),
+        borderLeftWidth: 0.5,
+        borderLeftColor: ink.lineStrong,
+    },
+
+    statValue: {
+        fontFamily: "SpaceGrotesk",
+        fontWeight: 700,
+        fontSize: 15,
+        lineHeight: 1.1,
+        color: ink.accent,
+    },
+
+    statLabel: {
+        fontFamily: "PlexMono",
+        fontSize: 6.5,
+        letterSpacing: 0.4,
+        color: ink.muted,
+        textTransform: "uppercase",
+        marginTop: mm(0.5),
+    },
+
+    /** 4 mm under the header, less the first section's own top margin. */
+    body: {
+        marginTop: mm(4 - 2.6),
     },
 
     /**
@@ -247,8 +284,13 @@ export const styles = StyleSheet.create({
         marginBottom: mm(1.5),
     },
 
+    /**
+     * Spacing goes *above* a section, not below. A bottom margin on the last
+     * section still counts against the page, and on the two-page layout those
+     * 7pt were exactly what pushed Additional Information onto a third page.
+     */
     section: {
-        marginBottom: mm(3),
+        marginTop: mm(2.6),
     },
 
     /** An experience or project block: 2pt accent bar down the left edge, echoing `BlueprintPlate`. */
@@ -256,7 +298,7 @@ export const styles = StyleSheet.create({
         borderLeftWidth: 2,
         borderLeftColor: ink.accent,
         paddingLeft: mm(2.5),
-        marginBottom: mm(2),
+        marginBottom: mm(1.7),
     },
 
     entryHeader: {
@@ -335,56 +377,69 @@ export const styles = StyleSheet.create({
         fontSize: 7.5,
     },
 
-    railGroup: {
-        marginBottom: mm(4),
-    },
-
-    /** Same extraction cap as `sectionLabel`, scaled to 7pt. */
-    railLabel: {
-        fontFamily: "PlexMono",
-        fontWeight: 500,
-        fontSize: 7,
-        letterSpacing: 0.5,
-        color: ink.muted,
-        textTransform: "uppercase",
-        marginBottom: mm(1.4),
-    },
-
-    railCategory: {
-        fontFamily: "PlexMono",
-        fontSize: 7,
-        color: ink.faint,
-        marginTop: mm(1.6),
-        marginBottom: mm(0.8),
-    },
-
-    /** Declares its own lineHeight: the degree names wrap to three lines here, and the Page cannot supply one (see `page`). */
-    railEntryTitle: {
-        fontWeight: 600,
-        fontSize: 8.5,
-        lineHeight: 1.35,
-        color: ink.ink,
-    },
-
-    railEntryMeta: {
+    /** Project role, "More projects" — secondary lines inside an entry. */
+    entryNote: {
         fontSize: 8,
         lineHeight: 1.35,
         color: ink.muted,
-    },
-
-    railEntryDates: {
-        fontFamily: "PlexMono",
-        fontSize: 7,
-        color: ink.faint,
         marginTop: mm(0.4),
     },
 
-    footer: {
+    /** Live / Code links, right-aligned on a project's title row. */
+    linkRow: {
         flexDirection: "row",
-        alignItems: "flex-end",
-        justifyContent: "space-between",
         gap: mm(3),
-        marginTop: mm(3),
+        flexShrink: 0,
+        marginTop: 1.5,
+    },
+
+    linkLabel: {
+        fontFamily: "PlexMono",
+        fontSize: 7,
+        color: ink.faint,
+    },
+
+    /**
+     * A label/value table row — skills, additional information. A fixed mono
+     * label column gives the eye one clean left edge to scan down, which a
+     * paragraph of "Languages: …, Frameworks: …" does not.
+     */
+    factRow: {
+        flexDirection: "row",
+        paddingVertical: mm(0.55),
+        borderBottomWidth: 0.4,
+        borderBottomColor: ink.line,
+    },
+
+    factLabel: {
+        width: mm(36),
+        flexShrink: 0,
+        fontFamily: "PlexMono",
+        fontWeight: 500,
+        fontSize: 7.2,
+        lineHeight: 1.5,
+        color: ink.muted,
+    },
+
+    factValue: {
+        flexGrow: 1,
+        flexBasis: 0,
+        fontSize: 8.5,
+        lineHeight: 1.4,
+    },
+
+    /**
+     * Pinned to the bottom of every page, outside the flow — `fixed` plus
+     * absolute, so it repeats on page two and cannot push content. The page's
+     * bottom padding (`PAGE_BOTTOM`) reserves its height.
+     */
+    footer: {
+        position: "absolute",
+        left: PAGE_MARGIN,
+        right: PAGE_MARGIN,
+        bottom: mm(7),
+        flexDirection: "row",
+        justifyContent: "space-between",
         paddingTop: mm(1.5),
         borderTopWidth: 0.5,
         borderTopColor: ink.line,

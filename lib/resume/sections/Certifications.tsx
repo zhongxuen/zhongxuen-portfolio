@@ -1,15 +1,13 @@
-import { Text, View } from "@react-pdf/renderer";
-import { RailLabel } from "@/lib/resume/sections/Primitives";
-import { styles } from "@/lib/resume/theme";
+import { FactRow, Section } from "@/lib/resume/sections/Primitives";
 import type { ResumeCertification } from "@/lib/resume/model";
 
 /**
- * Certifications, in the rail.
+ * Certifications, one table row each: year on the left, credential and issuer
+ * on the right.
  *
- * Renders nothing at all while `data/certifications.ts` is empty — which it is,
- * deliberately: nothing in the CV is a credential, and the site's certifications
- * strip makes the same choice rather than showing placeholder rows. Adding the
- * first real one is a push to that file and no change here.
+ * Renders nothing at all while `data/certifications.ts` is empty — the site's
+ * certifications strip makes the same choice rather than showing placeholder
+ * rows. Adding the first real one is a push to that file and no change here.
  */
 export function Certifications({ entries }: { entries: ResumeCertification[] }) {
     if (entries.length === 0) {
@@ -17,16 +15,12 @@ export function Certifications({ entries }: { entries: ResumeCertification[] }) 
     }
 
     return (
-        <View style={styles.railGroup}>
-            <RailLabel>Certifications</RailLabel>
-
+        <Section label="Certifications">
             {entries.map((entry) => (
-                <View key={entry.name} style={{ marginBottom: 6 }}>
-                    <Text style={styles.railEntryTitle}>{entry.name}</Text>
-                    <Text style={styles.railEntryMeta}>{entry.issuer}</Text>
-                    <Text style={styles.railEntryDates}>{entry.year}</Text>
-                </View>
+                <FactRow key={entry.name} label={entry.year}>
+                    {`${entry.name} — ${entry.issuer}`}
+                </FactRow>
             ))}
-        </View>
+        </Section>
     );
 }

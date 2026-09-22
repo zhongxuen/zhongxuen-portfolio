@@ -66,6 +66,7 @@ export const SKILL_CATEGORIES = [
     "Databases",
     "Frameworks",
     "Developer Tools",
+    "AI & LLMs",
     "Networking & Cloud",
     "Other Technologies",
 ] as const;

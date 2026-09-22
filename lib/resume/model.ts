@@ -32,22 +32,39 @@ export interface ResumeContact {
     href?: string;
 }
 
+/** A headline figure in the header strip. Always computed, never typed in. */
+export interface ResumeStat {
+    value: string;
+    label: string;
+}
+
 export interface ResumeRole {
     role: string;
     company: string;
+    /** "Internship", "Part-time" — printed beside the company. */
+    employmentType?: string;
     location?: string;
     /** Pre-formatted, e.g. "Jul 2026 – Present". */
     dates: string;
     bullets: string[];
+    technologies: string[];
+}
+
+export interface ResumeLink {
+    label: string;
+    /** Printed without a scheme — "job-now-navy.vercel.app". */
+    value: string;
+    href: string;
 }
 
 export interface ResumeProject {
     title: string;
+    /** "University capstone, four-person team". Absent means nothing is printed. */
+    role?: string;
     technologies: string[];
     summary: string;
-    /** Printed without a scheme — "job-now-navy.vercel.app" — and linked. */
-    url?: string;
-    href?: string;
+    features: string[];
+    links: ResumeLink[];
     featured: boolean;
 }
 
@@ -59,8 +76,17 @@ export interface ResumeSkillGroup {
 export interface ResumeEducation {
     degree: string;
     institution: string;
+    location?: string;
     dates: string;
-    detail?: string;
+    /** CGPA, honours and status, one line each. */
+    details: string[];
+    /** Comma-joined relevant coursework. */
+    coursework?: string;
+}
+
+export interface ResumeFact {
+    label: string;
+    value: string;
 }
 
 export interface ResumeCertification {
@@ -73,12 +99,20 @@ export interface ResumeModel {
     name: string;
     headline: string;
     contacts: ResumeContact[];
+    stats: ResumeStat[];
     summary: string;
+    highlights: string[];
+    /** Printed at the foot of the summary, on page one, where a recruiter looks first. */
+    availability: string;
     experience: ResumeRole[];
     projects: ResumeProject[];
+    /** Titles of the projects past `maxProjects`, for the closing "More projects" line. */
+    moreProjects: string[];
     skills: ResumeSkillGroup[];
     education: ResumeEducation[];
     certifications: ResumeCertification[];
+    /** Languages and interests. */
+    additional: ResumeFact[];
     /** Printed bottom-left and encoded in the QR code. */
     siteUrl: string;
     /** `CV · GZX · 2026-09`, the plate annotation in the top-right corner. */
@@ -97,16 +131,25 @@ export function buildResumeModel(
      * keeps the renderer free of any knowledge about which glyphs the bundled
      * fonts happen to have.
      */
+    const ranked = rankProjects(projects);
+
     return renderableModel({
         name: AUTHOR.name.toUpperCase(),
         headline: `${AUTHOR.role} · Full-Stack Developer`,
         contacts: buildContacts(),
+        stats: buildStats(projects),
         summary: config.summary,
+        highlights: config.highlights.filter((line) => line.trim()),
+        availability: config.availability.trim(),
         experience: buildExperience(config),
-        projects: buildProjects(projects, config),
+        projects: buildProjects(ranked, config),
+        moreProjects: config.listRemainingProjects
+            ? ranked.slice(config.maxProjects).map((project) => shortTitle(project.title))
+            : [],
         skills: buildSkills(config),
         education: buildEducation(),
         certifications: config.includeCertifications ? buildCertifications() : [],
+        additional: buildAdditional(config),
         siteUrl: stripScheme(SITE_URL),
         documentCode: `CV · GZX · ${now.toISOString().slice(0, 7)}`,
         includeQrCode: config.includeQrCode,
@@ -158,6 +201,7 @@ function buildContacts(): ResumeContact[] {
         { label: "Email", value: AUTHOR.email, href: `mailto:${AUTHOR.email}` },
         { label: "Phone", value: AUTHOR.phone, href: `tel:${AUTHOR.phone.replace(/[^\d+]/g, "")}` },
         { label: "Location", value: AUTHOR.location },
+        { label: "Portfolio", value: stripScheme(SITE_URL), href: SITE_URL },
         {
             label: "GitHub",
             value: stripScheme(AUTHOR.github),
@@ -168,7 +212,33 @@ function buildContacts(): ResumeContact[] {
             value: stripScheme(AUTHOR.linkedin),
             href: AUTHOR.linkedin,
         },
-        { label: "Portfolio", value: stripScheme(SITE_URL), href: SITE_URL },
+        { label: "JobStreet", value: "JobStreet profile", href: AUTHOR.jobstreet },
+    ];
+}
+
+/**
+ * The header's figures, all counted from data rather than written.
+ *
+ * Counting is the point: "13 projects" typed into a config file is stale the day
+ * a fourteenth ships, and a figure on a résumé that the linked site contradicts
+ * costs more credibility than it ever bought. Technologies are the distinct
+ * entries across every project's `technologies`, case-insensitively — what has
+ * actually been shipped with, not what `data/skills.ts` lists as known.
+ */
+function buildStats(projects: Project[]): ResumeStat[] {
+    const technologies = new Set(
+        projects.flatMap((project) => project.technologies.map((tech) => tech.toLowerCase())),
+    );
+    const gpa = sortByStartDateDesc(education).find((entry) => entry.gpa)?.gpa;
+
+    return [
+        { value: String(projects.length), label: "Projects built" },
+        {
+            value: String(projects.filter((project) => project.liveUrl).length),
+            label: "Live deployments",
+        },
+        { value: String(technologies.size), label: "Technologies shipped" },
+        ...(gpa ? [{ value: gpa, label: "CGPA" }] : []),
     ];
 }
 
@@ -177,8 +247,8 @@ function buildContacts(): ResumeContact[] {
  *
  * `sortByStartDateDesc` is the site's own sort, reused so the PDF cannot present
  * the timeline in a different order from `ExperienceSection`. The `description`
- * is dropped: it exists on the site to introduce a card, and on a résumé it would
- * repeat the bullets in prose form.
+ * is dropped when there are bullets: it exists on the site to introduce a card,
+ * and on a résumé it would repeat the bullets in prose form.
  */
 function buildExperience(config: ResumeConfig): ResumeRole[] {
     return sortByStartDateDesc(experience)
@@ -186,73 +256,137 @@ function buildExperience(config: ResumeConfig): ResumeRole[] {
         .map((entry) => ({
             role: entry.role,
             company: entry.company,
+            employmentType: entry.employmentType,
             location: entry.location ? shortLocation(entry.location) : undefined,
             dates: formatDateRange(entry.startDate, entry.endDate),
-            bullets: (entry.responsibilities ?? [entry.description]).slice(
-                0,
-                config.maxBulletsPerRole,
-            ),
+            bullets: (entry.responsibilities?.length
+                ? entry.responsibilities
+                : [entry.description]
+            ).slice(0, config.maxBulletsPerRole),
+            technologies: entry.technologies ?? [],
         }));
 }
 
-/**
- * Projects: featured first, then by `order`, capped at `maxProjects`.
- *
- * The one-line summary is the project's `description`, which is already written
- * to be read on a card — the `longDescription` is three paragraphs and belongs on
- * the case-study page. Technologies are capped at six per project because a chip
- * row that wraps to three lines stops being scannable and starts being a wall.
- */
-function buildProjects(projects: Project[], config: ResumeConfig): ResumeProject[] {
-    return [...projects]
-        .sort((a, b) => {
-            if (Boolean(a.featured) !== Boolean(b.featured)) {
-                return a.featured ? -1 : 1;
-            }
+/** Featured first, then by `order` — the site's own ranking. */
+function rankProjects(projects: Project[]): Project[] {
+    return [...projects].sort((a, b) => {
+        if (Boolean(a.featured) !== Boolean(b.featured)) {
+            return a.featured ? -1 : 1;
+        }
 
-            return (a.order ?? Infinity) - (b.order ?? Infinity);
-        })
-        .slice(0, config.maxProjects)
-        .map((project) => ({
-            title: project.title,
-            technologies: project.technologies.slice(0, 6),
-            summary: trimSummary(project.description, config.projectSummaryMaxChars),
-            url: project.liveUrl ? stripScheme(project.liveUrl) : undefined,
-            href: project.liveUrl,
-            featured: Boolean(project.featured),
-        }));
+        return (a.order ?? Infinity) - (b.order ?? Infinity);
+    });
+}
+
+/**
+ * Projects, capped at `maxProjects`, each with its summary, its first key
+ * features, its role, and every link it has.
+ *
+ * The summary is the project's `description` — card copy, already written to be
+ * read cold. The key features are what turn "a job listing app" into evidence of
+ * engineering: the description says what it is, the features say what was hard.
+ * Technologies are capped at eight per project because a chip row that wraps to
+ * three lines stops being scannable and starts being a wall.
+ *
+ * Both links are printed when both exist. A reviewer who wants to try it takes
+ * the live one; a reviewer who wants to judge the code takes the repository —
+ * and the second reviewer is the one deciding on an engineering hire. The live
+ * link prints its bare hostname (a deployed domain is itself a signal); the
+ * repository prints as "GitHub", since its full path would crowd the title row
+ * and every repository is one click from the GitHub URL in the contact row.
+ */
+function buildProjects(ranked: Project[], config: ResumeConfig): ResumeProject[] {
+    return ranked.slice(0, config.maxProjects).map((project) => ({
+        title: shortTitle(project.title),
+        role: project.role,
+        technologies: project.technologies.slice(0, 8),
+        summary: trimSummary(project.description, config.projectSummaryMaxChars),
+        features: (project.keyFeatures ?? [])
+            .slice(0, config.maxFeaturesPerProject)
+            .map((feature) => trimSummary(feature, config.featureMaxChars)),
+        links: [
+            ...(project.liveUrl
+                ? [
+                      {
+                          label: "Live",
+                          value: new URL(project.liveUrl).hostname.replace(/^www\./, ""),
+                          href: project.liveUrl,
+                      },
+                  ]
+                : []),
+            ...(project.githubUrl
+                ? [{ label: "Code", value: "GitHub", href: project.githubUrl }]
+                : []),
+        ],
+        featured: Boolean(project.featured),
+    }));
+}
+
+/**
+ * Drops a title's subtitle — "JobNow – Job Listing Application" prints as
+ * "JobNow". The subtitle restates the summary directly beneath it, and the short
+ * name is what the reader will search for on the site.
+ */
+function shortTitle(title: string): string {
+    return title.split(/ [–—] /)[0].trim();
 }
 
 /**
  * Skills grouped into the configured categories, in the configured order.
  *
  * A category with no skills is dropped rather than printed empty — a heading
- * with nothing under it reads as a rendering fault, and the rail's height is the
- * scarcest space on the page.
+ * with nothing under it reads as a rendering fault. Soft skills close the table
+ * as their own row; they come from `data/resume.ts` because the site has no
+ * other place for them.
  */
 function buildSkills(config: ResumeConfig): ResumeSkillGroup[] {
-    return config.skillCategories
+    const technical = config.skillCategories
         .map((category) => ({
-            category,
+            category: config.skillCategoryLabels[category] ?? category,
             items: skills.filter((skill) => skill.category === category).map((skill) => skill.name),
         }))
         .filter((group) => group.items.length > 0);
+
+    return config.softSkills.length > 0
+        ? [...technical, { category: "Soft Skills", items: config.softSkills }]
+        : technical;
 }
 
 /**
- * Education, newest first.
+ * Education, newest first, in full.
  *
- * `gpa` and the first honour are folded into one detail line: on the site they
- * are separate rows with room to breathe, and in a 32%-wide rail they have to be
- * one sentence or nothing.
+ * Honours are joined into one line (the SPM entry is six of them), the CGPA is
+ * added only when no honour already states it, and an ongoing entry carries its
+ * `description` — for the diploma that is the sentence explaining exactly where
+ * the award stands, which an employer reading "Present" will want to know.
  */
 function buildEducation(): ResumeEducation[] {
-    return sortByStartDateDesc(education).map((entry) => ({
-        degree: entry.degree,
-        institution: entry.institution,
-        dates: formatDateRange(entry.startDate, entry.endDate),
-        detail: entry.gpa ? `CGPA ${entry.gpa}` : entry.honors?.[0],
-    }));
+    return sortByStartDateDesc(education).map((entry) => {
+        const honours = entry.honors?.join(" · ");
+        const details = [
+            ...(honours ? [honours] : []),
+            ...(entry.gpa && !honours?.includes(entry.gpa) ? [`CGPA ${entry.gpa}`] : []),
+            ...(entry.endDate === "Present" && entry.description ? [entry.description] : []),
+        ];
+
+        return {
+            degree: entry.degree,
+            institution: entry.institution,
+            location: entry.location ? shortLocation(entry.location) : undefined,
+            dates: formatDateRange(entry.startDate, entry.endDate),
+            details,
+            coursework: entry.relevantCourses?.length
+                ? entry.relevantCourses.join(", ")
+                : undefined,
+        };
+    });
+}
+
+function buildAdditional(config: ResumeConfig): ResumeFact[] {
+    return [
+        { label: "Languages", value: config.languages.join(" · ") },
+        { label: "Interests", value: config.interests.join(" · ") },
+    ].filter((fact) => fact.value.trim());
 }
 
 function buildCertifications(): ResumeCertification[] {
@@ -278,9 +412,15 @@ function buildCertifications(): ResumeCertification[] {
  * and currency symbols — every mark the site's own copy actually uses. An
  * emptied bracket pair is removed too, so a stripped name does not leave
  * "School ()" behind.
+ *
+ * One mark is translated rather than dropped: "→" sits in the Arrows block, which
+ * the Latin subsets do not carry, and project copy uses it as a verb — "Gemini →
+ * local Ollama failover" printed as "Gemini local Ollama failover" loses the
+ * meaning. It becomes " to ".
  */
 function toRenderable(text: string): string {
     return text
+        .replace(/\s*→\s*/g, " to ")
         .replace(/[^ -ɏ -⁯₠-⃏]/g, "")
         .replace(/\(\s*\)|\[\s*\]|【\s*】/g, "")
         .replace(/\s{2,}/g, " ")
@@ -302,7 +442,16 @@ function toRenderable(text: string): string {
  *     deliberate one-liner rather than a sentence with its end lopped off. No
  *     ellipsis, because nothing reads as missing.
  *  2. **A sentence boundary inside the budget**, for the same reason.
- *  3. **The last word boundary**, with an ellipsis, since the cut is now visible
+ *  3. **The last phrase boundary inside the budget** — before " (", or after
+ *     ": ", "; ", or a comma that opens a new clause (", plus", ", with" …) —
+ *     provided it clears the same floor as tiers 1 and 2. Key features are written as
+ *     "the thing: the detail" or "the thing, plus the extra", so the head is a
+ *     complete statement. A bare list comma does not qualify: cutting
+ *     "Admin, Moderator and Student" after "Admin" would state something false.
+ *     Nor does a cut inside an open bracket.
+ *
+ * Tiers 1–3 each apply only when the cut keeps at least 30% of the budget.
+ *  4. **The last word boundary**, with an ellipsis, since the cut is now visible
  *     and pretending otherwise would read as a typo. A trailing comma or colon is
  *     stripped first — "a focus timer,…" is worse than "a focus timer…".
  */
@@ -313,21 +462,42 @@ export function trimSummary(text: string, max: number): string {
         return trimmed;
     }
 
+    /*
+     * No clean cut may keep less than this. Without it, a key feature written as
+     * "Deterministic simulation kernel — protocol logic is pure TypeScript…" was
+     * cut at its dash to three words, dropping the half that was the point.
+     */
+    const floor = max * 0.3;
     const clause = trimmed.search(/ [—–] /);
 
-    if (clause > 0 && clause <= max) {
+    if (clause >= floor && clause <= max) {
         return trimmed.slice(0, clause);
     }
 
     const sentence = trimmed.search(/[.!?] /);
 
-    if (sentence > 0 && sentence + 1 <= max) {
+    if (sentence + 1 >= floor && sentence + 1 <= max) {
         return trimmed.slice(0, sentence + 1);
+    }
+
+    const phrases = [
+        ...trimmed.matchAll(/ \(|[:;] |, (?=(?:plus|with|and|so|which|but|each|rather|then) )/g),
+    ]
+        .map((match) => match.index)
+        .filter((index) => index >= floor && index <= max && isBalanced(trimmed.slice(0, index)));
+
+    if (phrases.length > 0) {
+        return trimmed.slice(0, phrases[phrases.length - 1]);
     }
 
     const word = trimmed.lastIndexOf(" ", max);
 
     return `${trimmed.slice(0, word > 0 ? word : max).replace(/[,;:—–-]$/, "")}…`;
+}
+
+/** True when every "(" in `text` is closed — a cut inside brackets strands one open. */
+function isBalanced(text: string): boolean {
+    return (text.match(/\(/g)?.length ?? 0) === (text.match(/\)/g)?.length ?? 0);
 }
 
 /**

@@ -1,15 +1,13 @@
 import { Text, View } from "@react-pdf/renderer";
-import { RailLabel } from "@/lib/resume/sections/Primitives";
+import { Bullet, Section } from "@/lib/resume/sections/Primitives";
 import { styles } from "@/lib/resume/theme";
 import type { ResumeEducation } from "@/lib/resume/model";
 
 /**
- * Education, in the rail, newest first.
+ * Education, newest first, in the same accent-barred blocks as Experience.
  *
- * The degree names in `data/education.ts` are long — "Diploma in Information &
- * Communication Technology (Software Engineering)" wraps to three lines here —
- * and they are printed in full anyway. A truncated qualification is a different
- * qualification.
+ * The degree names in `data/education.ts` are long and printed in full anyway —
+ * a truncated qualification is a different qualification.
  */
 export function Education({ entries }: { entries: ResumeEducation[] }) {
     if (entries.length === 0) {
@@ -17,17 +15,33 @@ export function Education({ entries }: { entries: ResumeEducation[] }) {
     }
 
     return (
-        <View style={styles.railGroup}>
-            <RailLabel>Education</RailLabel>
-
+        <Section label="Education">
             {entries.map((entry) => (
-                <View key={`${entry.institution}-${entry.degree}`} style={{ marginBottom: 7 }}>
-                    <Text style={styles.railEntryTitle}>{entry.degree}</Text>
-                    <Text style={styles.railEntryMeta}>{entry.institution}</Text>
-                    <Text style={styles.railEntryDates}>{entry.dates}</Text>
-                    {entry.detail && <Text style={styles.railEntryDates}>{entry.detail}</Text>}
+                <View
+                    key={`${entry.institution}-${entry.degree}`}
+                    style={styles.entry}
+                    wrap={false}
+                >
+                    <View style={styles.entryHeader}>
+                        <Text style={{ ...styles.entryTitle, flexShrink: 1, lineHeight: 1.3 }}>
+                            {entry.degree}
+                        </Text>
+                        <Text style={styles.entryDates}>{entry.dates}</Text>
+                    </View>
+
+                    <Text style={styles.entryMeta}>
+                        {[entry.institution, entry.location].filter(Boolean).join(" · ")}
+                    </Text>
+
+                    {entry.details.map((detail) => (
+                        <Bullet key={detail}>{detail}</Bullet>
+                    ))}
+
+                    {entry.coursework && (
+                        <Bullet>{`Relevant coursework: ${entry.coursework}`}</Bullet>
+                    )}
                 </View>
             ))}
-        </View>
+        </Section>
     );
 }

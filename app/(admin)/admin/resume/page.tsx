@@ -16,9 +16,9 @@ import { formatDateTime } from "@/lib/utils";
  * Résumé management (docs/admin-plan.md §7.5).
  *
  * The "what will be on it" panel exists because the curation in
- * `data/resume.ts` omits things silently by design — two of three roles, four of
- * twelve projects. An omission the operator cannot see is one they will not
- * notice is wrong, so the counts are stated before anything is rendered.
+ * `data/resume.ts` shortens things by design — some projects get a full entry
+ * and the rest are only named. An omission the operator cannot see is one they
+ * will not notice is wrong, so the counts are stated before anything is rendered.
  */
 export default async function ResumePage() {
     await verifySession();
@@ -35,7 +35,7 @@ export default async function ResumePage() {
         <AdminShell
             eyebrow="Résumé"
             title="resume.pdf"
-            description="One page, A4, set in the site's own three faces. Regenerating renders a preview; committing is a separate, explicit press."
+            description={`Up to ${resumeConfig.maxPages} pages, A4, set in the site's own three faces. Regenerating renders a preview; committing is a separate, explicit press.`}
         >
             {file.source === "build" && <ReadOnlyNotice />}
 
@@ -46,7 +46,7 @@ export default async function ResumePage() {
                     value={history[0] ? formatDateTime(history[0].date) : "unknown"}
                 />
                 <Stat
-                    label="Projects on it"
+                    label="Projects in full"
                     value={`${model.projects.length} of ${file.projects.length}`}
                 />
                 <Stat
@@ -70,28 +70,43 @@ export default async function ResumePage() {
                 </a>
             </p>
 
-            <ResumePanel canWrite={file.source === "repo"} />
+            <ResumePanel canWrite={file.source === "repo"} maxPages={resumeConfig.maxPages} />
 
             <section className="flex flex-col gap-2">
                 <h2 className="bp-meta text-ink-muted">Curation</h2>
                 <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[auto_1fr]">
+                    <Row term="maxPages" detail={String(resumeConfig.maxPages)} />
                     <Row term="maxProjects" detail={String(resumeConfig.maxProjects)} />
-                    <Row term="maxRoles" detail={String(resumeConfig.maxRoles)} />
-                    <Row term="maxBulletsPerRole" detail={String(resumeConfig.maxBulletsPerRole)} />
                     <Row
-                        term="projectSummaryMaxChars"
-                        detail={String(resumeConfig.projectSummaryMaxChars)}
+                        term="maxFeaturesPerProject"
+                        detail={`${resumeConfig.maxFeaturesPerProject}, up to ${resumeConfig.featureMaxChars} characters each`}
                     />
-                    <Row term="skillCategories" detail={resumeConfig.skillCategories.join(", ")} />
+                    <Row term="maxRoles" detail={String(resumeConfig.maxRoles)} />
+                    <Row
+                        term="also named"
+                        detail={model.moreProjects.join(", ") || "none — every project is in full"}
+                    />
+                    <Row term="maxBulletsPerRole" detail={String(resumeConfig.maxBulletsPerRole)} />
+                    <Row term="highlights" detail={`${model.highlights.length} bullets`} />
+                    <Row
+                        term="skill rows"
+                        detail={model.skills.map((group) => group.category).join(", ")}
+                    />
+                    <Row
+                        term="languages · interests"
+                        detail={model.additional.map((fact) => fact.value).join("  /  ") || "none"}
+                    />
+                    <Row term="availability" detail={model.availability || "not printed"} />
                     <Row
                         term="includeQrCode"
-                        detail={resumeConfig.includeQrCode ? "yes — footer, 14 mm" : "no"}
+                        detail={resumeConfig.includeQrCode ? "yes — header, 15 mm" : "no"}
                     />
                 </dl>
                 <p className="text-xs leading-relaxed text-ink-muted">
-                    Edited in <code className="font-mono">data/resume.ts</code>. These are the
-                    levers for the one-page target — not the type size, which is already at the
-                    floor of what prints legibly.
+                    Edited in <code className="font-mono">data/resume.ts</code>. The first four rows
+                    are the levers for the page budget — not the type size, which is already at the
+                    floor of what prints legibly. The rest are résumé-only facts the site has no
+                    other home for.
                 </p>
             </section>
         </AdminShell>

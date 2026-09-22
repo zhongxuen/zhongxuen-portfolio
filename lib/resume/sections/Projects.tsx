@@ -1,58 +1,70 @@
 import { Text, View } from "@react-pdf/renderer";
-import { Chips, PdfLink, SectionLabel } from "@/lib/resume/sections/Primitives";
-import { ink, styles } from "@/lib/resume/theme";
+import { Bullet, Chips, PdfLink, Section } from "@/lib/resume/sections/Primitives";
+import { styles } from "@/lib/resume/theme";
 import type { ResumeProject } from "@/lib/resume/model";
 
 /**
- * Selected projects — featured first, capped by `resumeConfig.maxProjects`.
+ * Selected projects — featured first, capped by `resumeConfig.maxProjects` —
+ * then one line naming the rest.
  *
- * One line of prose each, its own tech chips, and the live URL as a real
- * hyperlink printed without its scheme. `signal` (#9a4506) appears here and
- * nowhere else in the document, as a single mono marker on a featured entry: the
- * plan held it in reserve for exactly one job, and this is it.
+ * Per entry: title with its links right-aligned on the same row (the live
+ * domain printed in full, the repository as "GitHub" — both real hyperlinks),
+ * the role when it was a team effort, the summary, the first key features as
+ * bullets, then tech chips. `wrap={false}` keeps an entry on one page.
  */
-export function Projects({ projects }: { projects: ResumeProject[] }) {
+export function Projects({
+    projects,
+    more,
+    siteUrl,
+}: {
+    projects: ResumeProject[];
+    more: string[];
+    siteUrl: string;
+}) {
     if (projects.length === 0) {
         return null;
     }
 
     return (
-        <View style={styles.section}>
-            <SectionLabel>Projects</SectionLabel>
-
+        <Section label="Projects">
             {projects.map((project) => (
                 <View key={project.title} style={styles.entry} wrap={false}>
                     <View style={styles.entryHeader}>
                         <Text style={styles.entryTitle}>{project.title}</Text>
-                        {project.featured && (
-                            <Text
-                                style={{
-                                    fontFamily: "PlexMono",
-                                    fontSize: 6.5,
-                                    /* Capped so an extractor reads "FEATURED", not "F E A T U R E D" — see `sectionLabel` in lib/resume/theme.ts. */
-                                    letterSpacing: 0.45,
-                                    color: ink.signal,
-                                    flexShrink: 0,
-                                }}
-                            >
-                                FEATURED
-                            </Text>
+
+                        {project.links.length > 0 && (
+                            <View style={styles.linkRow}>
+                                {project.links.map((link) => (
+                                    <Text key={link.href}>
+                                        <Text style={styles.linkLabel}>{`${link.label} `}</Text>
+                                        <PdfLink href={link.href}>{link.value}</PdfLink>
+                                    </Text>
+                                ))}
+                            </View>
                         )}
                     </View>
+
+                    {project.role && <Text style={styles.entryNote}>{project.role}</Text>}
 
                     <Text style={{ fontSize: 8.5, lineHeight: 1.45, marginTop: 1.5 }}>
                         {project.summary}
                     </Text>
 
-                    <Chips items={project.technologies} />
+                    {project.features.map((feature) => (
+                        <Bullet key={feature}>{feature}</Bullet>
+                    ))}
 
-                    {project.url && project.href && (
-                        <View style={{ marginTop: 3 }}>
-                            <PdfLink href={project.href}>{project.url}</PdfLink>
-                        </View>
-                    )}
+                    <Chips items={project.technologies} />
                 </View>
             ))}
-        </View>
+
+            {more.length > 0 && (
+                <Text style={styles.entryNote}>
+                    {`Also built: ${more.join(", ")}. Case studies for all ${
+                        projects.length + more.length
+                    } projects at ${siteUrl}.`}
+                </Text>
+            )}
+        </Section>
     );
 }

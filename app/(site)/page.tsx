@@ -38,7 +38,7 @@ export default async function HomePage() {
         <>
             <HeroSection projectCount={projects.length} resume={resume} />
             <AboutSection />
-            <SkillsSection />
+            <SkillsSection projects={projects} />
             <ProjectsSection projects={showcase} totalCount={projects.length} />
             <ExperienceSection />
             <EducationSection />
