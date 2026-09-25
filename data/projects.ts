@@ -95,6 +95,49 @@ export const projects: Project[] = [
         order: 2,
     },
     {
+        slug: "candlewright-incident-room",
+        title: "Candlewright: Incident Room",
+        description:
+            "A forensics story game: join Candlewright Security's blue team and work out what happened to a client's computers from a disk image, a memory dump and a set of logs, in a simulated terminal. No experience needed, nothing to install.",
+        longDescription:
+            "The blue-team sibling of Hacker Simulation, set in the same world with the same cast and the same engine. After a made-up break-in at a made-up haulage firm, you copy a laptop's drive behind a write-blocker and prove the copy with its hash, recover and carve deleted files, read a memory capture for a hidden process, and line up sign-in records kept in two time zones — then close each case with a report in which an answer only counts if a piece of evidence you pinned proves it. None of the evidence is written by hand: each case is one YAML file holding the ground-truth story, and a generator plays that story into the disk image, memory and logs, so tests can check every case for consistency, determinism and solvability, and a headless playthrough of each case runs on every build. The engine is Hacker Simulation's pure, deterministic one, extended with an evidence model, pure-TypeScript MD5, SHA-1 and SHA-256, and forensics tools with invented names whose manual pages each name the real tool they imitate. Three investigator views sit beside the terminal — an Autopsy-style evidence browser, a canvas super-timeline and a case board — and they share one format for pointing at evidence, so a terminal line, a browser row and a moment on the timeline can each be pinned and opened in the others. The optional mentor, Noor, calls Claude Haiku 4.5 from three server routes; she rewords hints written ahead of time and is never given a case's answers, which a test checks by searching every prompt she is sent for any part of the answer key.",
+        technologies: [
+            "Next.js",
+            "TypeScript",
+            "React",
+            "Tailwind CSS",
+            "Zod",
+            "Claude API",
+            "Vitest",
+            "Playwright",
+        ],
+        githubUrl: "https://github.com/zhongxuen/forensics-simulation",
+        githubRepo: "forensics-simulation",
+        liveUrl: "https://forensics-simulation.vercel.app",
+        screenshots: ["/images/projects/candlewright-incident-room-workspace.jpg"],
+        keyFeatures: [
+            "A chapter of three cases at one made-up haulage yard (about 15, 30 and 30 minutes): copy and verify a laptop's drive, recover deleted invoices and clear the person everyone suspected, and find a hidden process still calling out from a running server",
+            "Evidence generated from a written story rather than drawn by hand — each case is a YAML file of what really happened, and tests check every case for consistency, determinism, solvability and answer integrity",
+            "An FTK Imager-style acquire-and-verify workflow behind a write-blocker that starts on; reading the original with it off changes the drive's hash, which is Case 1's lesson",
+            "An Autopsy-style evidence browser, Volatility-style memory tools (process lists, hidden-process scans, network connections, injected code), and file carving, string search and log queries in the terminal",
+            "A canvas super-timeline of every file time, memory event and log record, with zoom, a brush, a table view and cross-highlighting, measured at 60 fps with 5,000 events",
+            "A case board, and a report that counts an answer as supported only when it is right and a pin it cites proves it",
+            "A chain-of-custody log built from what you actually did, exportable as plain text",
+            "Learning Center: 16 lessons across four tracks — foundations, disk, memory, and logs and timelines — practised on generated evidence in embedded terminals",
+            "Noor, an optional AI mentor who gives hints rather than answers, explains any line on screen and reviews a finished case, and is never given the answers to give away",
+            "axe on every route, keyboard-only Playwright playthroughs on a desktop and a 360 px phone, and a 200 KB per-page JavaScript budget",
+        ],
+        disclaimers: [
+            "Every disk image, memory dump and log is made up and generated from a written story. Nothing here parses a real image or real memory, and the tools have invented names. Each tool's manual names the real tool it imitates.",
+            "It teaches the investigator's workflow, not the internals of any one commercial tool, and it isn't preparation for a certification.",
+            "Content is Chapter 1 only — three cases, plus the sandbox and the Learning Center. Later chapters are not written.",
+            "The live mentor needs an Anthropic API key. Without one, Noor still gives hints, but the ones written ahead of time rather than generated.",
+            "No accounts and no database: your cases are saved in your own browser, and you can export or clear them.",
+        ],
+        featured: true,
+        order: 3,
+    },
+    {
         slug: "jobnow",
         title: "JobNow – Job Listing Application",
         description:
@@ -122,7 +165,7 @@ export const projects: Project[] = [
             "The percentage match is a keyword-overlap score computed on the device, not a machine-learning model.",
         ],
         featured: true,
-        order: 3,
+        order: 4,
     },
     {
         slug: "personal-ai-assistant",
@@ -160,7 +203,7 @@ export const projects: Project[] = [
             "Every front door is opt-in and keyed: the Discord bot, the WhatsApp webhook and Gemini each stay off until their token or key is set in the environment.",
         ],
         featured: true,
-        order: 4,
+        order: 5,
     },
     {
         slug: "routine-launcher",
@@ -195,7 +238,7 @@ export const projects: Project[] = [
             "Two of the five accent themes are cosmetic rewards unlocked at level 3 and level 5. Light, dark, system and the default accent are always available.",
         ],
         featured: true,
-        order: 5,
+        order: 6,
     },
     {
         slug: "grabexpress-receipt-collector",
@@ -234,7 +277,7 @@ export const projects: Project[] = [
             "Read-only and stateless: the Gmail scope is read-only, there is no database and no token file, and the spreadsheet is built in memory and streamed to your browser rather than stored.",
         ],
         featured: true,
-        order: 6,
+        order: 7,
     },
     {
         slug: "ai-code-visualizer",
@@ -276,7 +319,7 @@ export const projects: Project[] = [
             "Python and Java load their WASM runtimes from a CDN on first use, so those two languages need a working network connection even though nothing you write leaves the browser.",
         ],
         featured: true,
-        order: 7,
+        order: 8,
     },
     {
         slug: "it-ticket-helpdesk-system",
@@ -320,7 +363,7 @@ export const projects: Project[] = [
             "There is no email delivery. Notifications and the support-email setting are in-app values, not a configured mail service.",
         ],
         featured: true,
-        order: 8,
+        order: 9,
     },
     {
         slug: "ecoquest",
@@ -349,7 +392,7 @@ export const projects: Project[] = [
             "Uploaded quest evidence and reward images are written to a folder in the project rather than to object storage.",
         ],
         featured: true,
-        order: 9,
+        order: 10,
     },
     {
         slug: "advanced-tutorial-centre-system",
@@ -376,7 +419,7 @@ export const projects: Project[] = [
             "It is coursework written to a module brief, not something to run a real tuition centre on.",
         ],
         featured: true,
-        order: 10,
+        order: 11,
     },
     {
         slug: "education-management-system",
@@ -401,7 +444,7 @@ export const projects: Project[] = [
             "Accounts and records are plain text files in the repository. Passwords are not hashed and there is no real authentication, so it is a teaching exercise rather than a system for real student data.",
         ],
         featured: false,
-        order: 11,
+        order: 12,
     },
     {
         slug: "jommakan-website-interface",
@@ -430,7 +473,7 @@ export const projects: Project[] = [
             "Tailwind is loaded from a CDN at runtime, so the page needs a network connection to look right.",
         ],
         featured: false,
-        order: 12,
+        order: 13,
     },
     {
         slug: "travel-expertise-ai-chatbot",
@@ -448,6 +491,6 @@ export const projects: Project[] = [
             "Flow-and-intent design, not a language model of my own: the conversation is authored, and the reasoning is Botpress's.",
         ],
         featured: false,
-        order: 13,
+        order: 14,
     },
 ];
