@@ -71,6 +71,13 @@ export interface Project {
     /** Planned or potential future enhancements */
     futureImprovements?: string[];
 
+    /**
+     * A named group of related projects. "visualizers" puts a "Part of the
+     * Visualizer Series" label on the card. Written by the admin form and the
+     * serializer like every other field, so an admin save keeps it.
+     */
+    series?: "visualizers";
+
     /** Whether this project should appear in the home page "Featured Projects" section */
     featured?: boolean;
 

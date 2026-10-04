@@ -49,8 +49,53 @@ export const projects: Project[] = [
             "There is no cryptography anywhere in the TLS layer — the handshake is modelled, not performed. It is the largest of the deliberate simplifications, and all of them are written down in the repo's docs/ACCURACY.md.",
             "There is no live traceroute: a serverless runtime cannot send ICMP, and faking one would be worse than leaving it out.",
         ],
+        series: "visualizers",
         featured: true,
         order: 1,
+    },
+    {
+        slug: "os-visualizer",
+        title: "OS Visualizer",
+        description:
+            "Operating system internals you step through one tick at a time: CPU scheduling, address translation, page replacement, deadlock and synchronisation.",
+        longDescription:
+            "A Next.js app that turns the parts of an operating systems course textbooks draw as static diagrams into runs you can play, pause, step backwards and share. Every algorithm is pure TypeScript with no React, no clock and no unseeded randomness, enforced by ESLint boundary rules, and emits one cited event per decision, so the screen always says why: \"P2 preempts P1: 4 ticks left < 7\", OSC10 §5.3.2. One tick-based kernel runs every scheduling policy (FCFS, SJF, SRTF, priority with aging, Round Robin and MLFQ with I/O bursts and a context-switch cost), and a Compare view runs the same workload under up to four of them on one time axis. Address translation walks the TLB and one- or two-level page tables; page replacement plots faults against frames for FIFO, LRU, OPT and Clock so Belady's anomaly is visible; deadlock separates cycle detection, the detection algorithm and Banker's algorithm, with recovery; and synchronisation lets you choose the interleaving of two threads and lose an update, then counts every possible interleaving. Correctness is checked three ways: the textbooks' own worked examples as tests, property tests on invariants, and brute-force oracles where search is feasible. Every tie-break the books leave open is written down as a rule, shown in the UI and tested by name.",
+        technologies: [
+            "Next.js",
+            "TypeScript",
+            "React",
+            "Tailwind CSS",
+            "Zustand",
+            "Zod",
+            "React Flow",
+            "Vitest",
+            "fast-check",
+            "Playwright",
+        ],
+        githubUrl: "https://github.com/zhongxuen/os-visualizer",
+        githubRepo: "os-visualizer",
+        liveUrl: "https://os-visualizer-two.vercel.app",
+        screenshots: ["/images/projects/os-visualizer-scheduling.jpg"],
+        keyFeatures: [
+            "Six modules: CPU scheduling, a side-by-side policy comparison, address translation, page replacement, deadlock and synchronisation",
+            "One pure, tick-based kernel behind every scheduling policy, including MLFQ with per-level allotments and OSTEP's old rule 4 for the gaming example",
+            "Results checked against the textbooks' worked examples (OSTEP v1.10, Silberschatz 10th edition), property tests with a fixed seed, and brute-force oracles for OPT, Banker's algorithm, deadlock detection and every thread interleaving",
+            "Every tie-break the textbooks leave open is a rule shown in a Rules panel and tested by name, so a run can be checked against a homework answer",
+            "Side-by-side policy comparison on one time axis, with the best value in each metric marked and a generated explanation",
+            "Synchronisation module that counts every interleaving of a program: the unlocked counter loses an update in 18 of 20, the mutex version in none",
+            "A guided lesson per module with checkpoints whose answers are computed from the same algorithm, never typed into the lesson",
+            "Deterministic and shareable: same input, same run, and any workload, graph or interleaving is a link",
+            "Axe on every route in both themes, a keyboard-only walk through every module, a colour-blind check of the charts, and a JavaScript budget per route",
+        ],
+        disclaimers: [
+            "Models the textbook algorithms, not a real kernel. There are no interrupts, no multicore and no real hardware timings. I/O is a fixed wait with no device queue, and context switches cost a fixed, configurable number of ticks.",
+            "Where textbooks disagree on a small rule (tie-breaks, when a preempted process re-queues, the Clock hand after a load), one rule is chosen and shown in the Rules panel. Another book's worked example may differ by that rule.",
+            "MLFQ follows the rules as OSTEP states them. Real schedulers (Linux EEVDF, Windows) are described in lessons, not simulated.",
+            "The TLB is fully associative with no ASIDs, and belongs to one process. Page faults stop the translation; loading the page is shown in the Page Replacement module.",
+            "Banker's algorithm shows one safe sequence; there may be others.",
+        ],
+        series: "visualizers",
+        order: 2,
     },
     {
         slug: "hacker-simulation",
@@ -92,7 +137,7 @@ export const projects: Project[] = [
             "No accounts and no database: settings live in your own browser and nowhere else, so clearing site data clears them. Optional anonymous usage counts have an off switch and are never sent from a browser set to Do Not Track.",
         ],
         featured: true,
-        order: 2,
+        order: 3,
     },
     {
         slug: "candlewright-incident-room",
@@ -135,7 +180,7 @@ export const projects: Project[] = [
             "No accounts and no database: your cases are saved in your own browser, and you can export or clear them.",
         ],
         featured: true,
-        order: 3,
+        order: 4,
     },
     {
         slug: "jobnow",
@@ -165,7 +210,7 @@ export const projects: Project[] = [
             "The percentage match is a keyword-overlap score computed on the device, not a machine-learning model.",
         ],
         featured: true,
-        order: 4,
+        order: 5,
     },
     {
         slug: "personal-ai-assistant",
@@ -203,7 +248,7 @@ export const projects: Project[] = [
             "Every front door is opt-in and keyed: the Discord bot, the WhatsApp webhook and Gemini each stay off until their token or key is set in the environment.",
         ],
         featured: true,
-        order: 5,
+        order: 6,
     },
     {
         slug: "routine-launcher",
@@ -238,7 +283,7 @@ export const projects: Project[] = [
             "Two of the five accent themes are cosmetic rewards unlocked at level 3 and level 5. Light, dark, system and the default accent are always available.",
         ],
         featured: true,
-        order: 6,
+        order: 7,
     },
     {
         slug: "grabexpress-receipt-collector",
@@ -277,7 +322,7 @@ export const projects: Project[] = [
             "Read-only and stateless: the Gmail scope is read-only, there is no database and no token file, and the spreadsheet is built in memory and streamed to your browser rather than stored.",
         ],
         featured: true,
-        order: 7,
+        order: 8,
     },
     {
         slug: "ai-code-visualizer",
@@ -319,7 +364,7 @@ export const projects: Project[] = [
             "Python and Java load their WASM runtimes from a CDN on first use, so those two languages need a working network connection even though nothing you write leaves the browser.",
         ],
         featured: true,
-        order: 8,
+        order: 9,
     },
     {
         slug: "it-ticket-helpdesk-system",
@@ -363,7 +408,7 @@ export const projects: Project[] = [
             "There is no email delivery. Notifications and the support-email setting are in-app values, not a configured mail service.",
         ],
         featured: true,
-        order: 9,
+        order: 10,
     },
     {
         slug: "ecoquest",
@@ -392,7 +437,7 @@ export const projects: Project[] = [
             "Uploaded quest evidence and reward images are written to a folder in the project rather than to object storage.",
         ],
         featured: true,
-        order: 10,
+        order: 11,
     },
     {
         slug: "advanced-tutorial-centre-system",
@@ -419,7 +464,7 @@ export const projects: Project[] = [
             "It is coursework written to a module brief, not something to run a real tuition centre on.",
         ],
         featured: true,
-        order: 11,
+        order: 12,
     },
     {
         slug: "education-management-system",
@@ -444,7 +489,7 @@ export const projects: Project[] = [
             "Accounts and records are plain text files in the repository. Passwords are not hashed and there is no real authentication, so it is a teaching exercise rather than a system for real student data.",
         ],
         featured: false,
-        order: 12,
+        order: 13,
     },
     {
         slug: "jommakan-website-interface",
@@ -473,7 +518,7 @@ export const projects: Project[] = [
             "Tailwind is loaded from a CDN at runtime, so the page needs a network connection to look right.",
         ],
         featured: false,
-        order: 13,
+        order: 14,
     },
     {
         slug: "travel-expertise-ai-chatbot",
@@ -491,6 +536,6 @@ export const projects: Project[] = [
             "Flow-and-intent design, not a language model of my own: the conversation is authored, and the reasoning is Botpress's.",
         ],
         featured: false,
-        order: 14,
+        order: 15,
     },
 ];

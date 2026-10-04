@@ -68,6 +68,7 @@ export function ProjectCard({
         language,
         lastUpdated,
         featured,
+        series,
     } = project;
 
     /*
@@ -142,6 +143,9 @@ export function ProjectCard({
             )}
 
             <div className="flex flex-1 flex-col gap-4 p-6">
+                {series === "visualizers" && (
+                    <p className="bp-meta text-ink-muted">Part of the Visualizer Series</p>
+                )}
                 <Link
                     href={`/projects/${slug}`}
                     className="bp-focus after:absolute after:inset-0 after:content-['']"

@@ -137,6 +137,8 @@ export function parseProjectForm(formData: FormData): Project {
     const role = text("role");
     if (role) project.role = role;
 
+    if (formData.get("series") === "on") project.series = "visualizers";
+
     const githubUrl = text("githubUrl");
     if (githubUrl) project.githubUrl = githubUrl;
 

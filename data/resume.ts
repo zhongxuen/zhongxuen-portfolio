@@ -36,7 +36,7 @@ export const resumeConfig: ResumeConfig = {
     maxFeaturesPerProject: 2,
     featureMaxChars: 110,
     projectSummaryMaxChars: 260,
-    listRemainingProjects: true,
+    listRemainingProjects: false,
     maxRoles: 3,
     maxBulletsPerRole: 4,
     skillCategories: [

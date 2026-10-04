@@ -45,6 +45,7 @@ const KNOWN_KEYS = [
     "challenges",
     "lessonsLearned",
     "futureImprovements",
+    "series",
     "featured",
     "order",
 ] as const;

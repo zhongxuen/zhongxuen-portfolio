@@ -101,6 +101,14 @@ export function ProjectEditor({ project, canWrite }: { project?: Project; canWri
                 />
 
                 <CheckboxField
+                    name="series"
+                    label="Part of the Visualizer Series"
+                    defaultChecked={project?.series === "visualizers"}
+                    disabled={disabled}
+                    hint='Labels the card "Part of the Visualizer Series".'
+                />
+
+                <CheckboxField
                     name="featured"
                     label="Featured"
                     defaultChecked={Boolean(project?.featured)}

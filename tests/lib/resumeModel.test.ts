@@ -95,8 +95,12 @@ describe("buildResumeModel", () => {
         }
     });
 
-    it("names every project that does not get a full entry", () => {
-        expect(model.projects.length + model.moreProjects.length).toBe(projects.length);
+    it("names every project that does not get a full entry, when the list is on", () => {
+        if (resumeConfig.listRemainingProjects) {
+            expect(model.projects.length + model.moreProjects.length).toBe(projects.length);
+        } else {
+            expect(model.moreProjects).toEqual([]);
+        }
     });
 
     it("prints full education detail: honours and coursework", () => {

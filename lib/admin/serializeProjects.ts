@@ -83,6 +83,7 @@ const FIELDS: readonly FieldSpec<Project>[] = [
     { key: "challenges" },
     { key: "lessonsLearned" },
     { key: "futureImprovements" },
+    { key: "series" },
     { key: "featured" },
     { key: "order" },
 ];
