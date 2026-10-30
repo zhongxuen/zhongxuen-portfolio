@@ -48,6 +48,7 @@ const KNOWN_KEYS = [
     "series",
     "featured",
     "order",
+    "syncedAt",
 ] as const;
 
 export const PROJECTS_SHAPE = {

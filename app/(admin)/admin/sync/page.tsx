@@ -1,6 +1,7 @@
 import { verifySession } from "@/lib/admin/dal";
 import { loadProjectsFile } from "@/lib/admin/projectStore";
 import { buildSyncPlan } from "@/lib/admin/syncDiff";
+import { loadActivityCommits } from "@/lib/admin/syncNarrative";
 import { getPortfolioRepos } from "@/services/githubService";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DiffTable } from "@/components/admin/DiffTable";
@@ -24,12 +25,13 @@ export default async function SyncPage() {
     const file = await loadProjectsFile();
     const repos = await getPortfolioRepos();
     const plan = buildSyncPlan(file.projects, repos);
+    const commits = await loadActivityCommits(plan.activity);
 
     return (
         <AdminShell
             eyebrow="Sync"
             title="GitHub sync"
-            description="What your repositories say that data/projects.ts does not. Review, tick, apply — one commit."
+            description="What your repositories say that data/projects.ts does not — links, new repos, and work pushed since an entry was last reviewed. Review, tick, apply — one commit."
         >
             {file.source === "build" && <ReadOnlyNotice />}
 
@@ -47,16 +49,22 @@ export default async function SyncPage() {
                     <p className="font-mono text-xs text-ink-muted">
                         {repos.length} repositories · {file.projects.length} entries ·{" "}
                         {plan.added.length} unlisted · {plan.changed.length} changed ·{" "}
+                        {plan.activity.length} with new work ·{" "}
                         {plan.orphaned.length} orphaned
                     </p>
 
-                    <DiffTable plan={plan} canWrite={file.source === "repo"} />
+                    <DiffTable
+                        plan={plan}
+                        commits={commits}
+                        canWrite={file.source === "repo"}
+                    />
 
                     <p className="max-w-2xl text-xs leading-relaxed text-ink-muted">
-                        GitHub supplies stats and identity, never narrative — the same rule
-                        <code className="mx-1 font-mono">adapters/githubProjectAdapter.ts</code>
-                        follows. A synced project therefore arrives as a stub with real links and an
-                        honest description, and stays unfeatured until you say otherwise.
+                        Links and new repos come straight from GitHub. Copy never does on its own: a
+                        drafted update is a proposal from the README and commits, shown field by
+                        field for you to edit or drop, and nothing reaches
+                        <code className="mx-1 font-mono">data/projects.ts</code>
+                        until you tick it and apply. A new repo arrives as an unfeatured stub.
                     </p>
                 </>
             )}

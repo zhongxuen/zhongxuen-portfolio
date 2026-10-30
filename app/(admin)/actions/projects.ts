@@ -139,6 +139,11 @@ export async function saveProject(
     const next: Project = {
         ...submitted,
         order: existing?.order ?? file.projects.length + 1,
+        /*
+         * Owned by the sync page like `order` is owned by the reorder action: a
+         * form save is an edit of the copy, not a review against the repo.
+         */
+        ...(existing?.syncedAt ? { syncedAt: existing.syncedAt } : {}),
     };
 
     let screenshot: ScreenshotUpload | null = null;

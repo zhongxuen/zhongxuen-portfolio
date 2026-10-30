@@ -114,3 +114,74 @@ export async function fetchRepo(
         return null;
     }
 }
+/** The fields of a commit the admin sync page shows. */
+export interface GitHubCommit {
+    sha: string;
+    html_url: string;
+    commit: {
+        message: string;
+        author: { date: string } | null;
+    };
+}
+
+/**
+ * Fetches up to `limit` commits on the default branch, newest first, optionally
+ * only those after `since` (ISO timestamp).
+ *
+ * Uncached: this feeds the admin sync review, where a stale answer is the bug.
+ * Returns an empty array on failure, like every fetcher here.
+ */
+export async function fetchCommits(
+    owner: string,
+    repo: string,
+    { since, limit = 30 }: { since?: string; limit?: number } = {}
+): Promise<GitHubCommit[]> {
+    const params = new URLSearchParams({ per_page: String(Math.min(limit, 100)) });
+
+    if (since) {
+        params.set("since", since);
+    }
+
+    try {
+        const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?${params}`, {
+            headers: buildHeaders(),
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            console.error(`GitHub API error: ${response.status} ${response.statusText}`);
+            return [];
+        }
+
+        return (await response.json()) as GitHubCommit[];
+    } catch (error) {
+        console.error(`Failed to fetch commits for ${owner}/${repo}:`, error);
+        return [];
+    }
+}
+
+/**
+ * Fetches the repo's README as raw Markdown, or null if it has none or the
+ * request fails. Uncached, for the same reason as `fetchCommits`.
+ */
+export async function fetchReadme(owner: string, repo: string): Promise<string | null> {
+    try {
+        const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/readme`, {
+            headers: { ...buildHeaders(), Accept: "application/vnd.github.raw+json" },
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            if (response.status !== 404) {
+                console.error(`GitHub API error: ${response.status} ${response.statusText}`);
+            }
+
+            return null;
+        }
+
+        return await response.text();
+    } catch (error) {
+        console.error(`Failed to fetch README for ${owner}/${repo}:`, error);
+        return null;
+    }
+}

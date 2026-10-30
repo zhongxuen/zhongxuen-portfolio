@@ -5,10 +5,11 @@ import Link from "next/link";
 import { ArrowRight, GitPullRequestArrow, LoaderCircle, Unlink } from "lucide-react";
 import { applySync } from "@/app/(admin)/actions/sync";
 import { DeployStatus } from "@/components/admin/DeployStatus";
+import { SyncActivityRow } from "@/components/admin/SyncActivityRow";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { IDLE_ACTION, syncEntryId, type SyncPlan } from "@/types/admin";
+import { IDLE_ACTION, syncEntryId, type SyncCommit, type SyncPlan } from "@/types/admin";
 
 /**
  * The GitHub sync review step (docs/admin-plan.md §7.4).
@@ -21,23 +22,50 @@ import { IDLE_ACTION, syncEntryId, type SyncPlan } from "@/types/admin";
  * Default selection: changes on, additions off. A change is a fact GitHub knows
  * better than the file does; an addition arrives with a machine-written
  * description that wants rewriting first, so it is off until the operator has read
- * it. Orphans have no checkbox at all — they are a flag, never an action.
+ * it. New work is off too: ticking it is a statement that the copy has been
+ * checked against the repo. Orphans have no checkbox at all — they are a flag,
+ * never an action.
  */
-export function DiffTable({ plan, canWrite }: { plan: SyncPlan; canWrite: boolean }) {
+export function DiffTable({
+    plan,
+    commits,
+    canWrite,
+}: {
+    plan: SyncPlan;
+    commits: Record<string, SyncCommit[]>;
+    canWrite: boolean;
+}) {
     const [state, formAction, pending] = useActionState(applySync, IDLE_ACTION);
-    const actionable = plan.added.length + plan.changed.length;
+    const actionable = plan.added.length + plan.changed.length + plan.activity.length;
 
     return (
         <div className="flex flex-col gap-6">
             {actionable === 0 ? (
                 <Card plain className="p-5">
                     <p className="text-sm text-ink-muted">
-                        Nothing to apply — every repository already has an entry, and every
-                        entry&rsquo;s links agree with its repository.
+                        Nothing to apply — every repository already has an entry, every
+                        entry&rsquo;s links agree with its repository, and no repository has
+                        been pushed since its entry was last reviewed.
                     </p>
                 </Card>
             ) : (
                 <form action={formAction} className="flex flex-col gap-6">
+                    {plan.activity.length > 0 && (
+                        <Group
+                            title="New work"
+                            note="Repos pushed since their entry was last reviewed. Draft an update to have the README and these commits turned into proposed copy you can edit, or just tick the row to mark the entry reviewed. Either way, applying stamps the review so the entry stays quiet until the repo moves again."
+                        >
+                            {plan.activity.map((entry) => (
+                                <SyncActivityRow
+                                    key={syncEntryId(entry)}
+                                    entry={entry}
+                                    commits={commits[entry.slug] ?? []}
+                                    disabled={!canWrite}
+                                />
+                            ))}
+                        </Group>
+                    )}
+
                     {plan.changed.length > 0 && (
                         <Group
                             title="Changed"

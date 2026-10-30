@@ -230,3 +230,86 @@ describe("planSize", () => {
         expect(planSize(plan)).toBe(1);
     });
 });
+
+describe("buildSyncPlan — liveUrl", () => {
+    it("does not propose stripping a demo query or a trailing slash from the stored liveUrl", () => {
+        const plan = buildSyncPlan(
+            [
+                project({ slug: "a", githubRepo: "a", githubUrl: "https://github.com/zhongxuen/a", liveUrl: "https://a.vercel.app/?demo=1" }),
+                project({ slug: "b", githubRepo: "b", githubUrl: "https://github.com/zhongxuen/b", liveUrl: "https://b.vercel.app/" }),
+            ],
+            [
+                repo({ name: "a", homepage: "https://a.vercel.app" }),
+                repo({ name: "b", homepage: "https://b.vercel.app" }),
+            ],
+        );
+
+        expect(plan.changed).toHaveLength(0);
+    });
+
+    it("still proposes a homepage on a different host", () => {
+        const plan = buildSyncPlan(
+            [project({ slug: "a", githubRepo: "a", githubUrl: "https://github.com/zhongxuen/a", liveUrl: "https://old.vercel.app/?demo=1" })],
+            [repo({ name: "a", homepage: "https://new.vercel.app" })],
+        );
+
+        expect(plan.changed).toMatchObject([{ field: "liveUrl", proposed: "https://new.vercel.app" }]);
+    });
+});
+
+describe("buildSyncPlan — new work", () => {
+    it("lists a never-reviewed entry, and one pushed after its review stamp", () => {
+        const plan = buildSyncPlan(
+            [
+                project({ slug: "never", githubRepo: "never", githubUrl: "https://github.com/zhongxuen/never" }),
+                project({ slug: "stale", githubRepo: "stale", githubUrl: "https://github.com/zhongxuen/stale", syncedAt: "2026-01-01T00:00:00Z" }),
+                project({ slug: "fresh", githubRepo: "fresh", githubUrl: "https://github.com/zhongxuen/fresh", syncedAt: "2026-03-01T00:00:00Z" }),
+            ],
+            [
+                repo({ name: "never", pushed_at: "2026-02-01T00:00:00Z" }),
+                repo({ name: "stale", pushed_at: "2026-02-01T00:00:00Z" }),
+                repo({ name: "fresh", pushed_at: "2026-03-01T00:00:00Z" }),
+            ],
+        );
+
+        expect(plan.activity.map((entry) => entry.slug)).toEqual(["never", "stale"]);
+        expect(plan.activity[1]).toMatchObject({
+            since: "2026-01-01T00:00:00Z",
+            pushedAt: "2026-02-01T00:00:00Z",
+        });
+        expect(planSize(plan)).toBe(2);
+    });
+});
+
+describe("applySyncPlan — new work", () => {
+    const projects = [
+        project({ slug: "x", githubRepo: "x", githubUrl: "https://github.com/zhongxuen/x", description: "Old.", syncedAt: "2026-01-01T00:00:00Z" }),
+    ];
+    const plan = buildSyncPlan(projects, [repo({ name: "x", pushed_at: "2026-02-01T00:00:00Z" })]);
+
+    it("stamps syncedAt and applies the kept draft fields when ticked", () => {
+        const next = applySyncPlan(
+            projects,
+            plan,
+            new Set(["activity:x"]),
+            new Map([["x", { description: "New.", keyFeatures: ["One"] }]]),
+        );
+
+        expect(next[0]).toMatchObject({
+            description: "New.",
+            keyFeatures: ["One"],
+            syncedAt: "2026-02-01T00:00:00Z",
+        });
+    });
+
+    it("ignores a draft whose entry was not ticked", () => {
+        const next = applySyncPlan(
+            projects,
+            plan,
+            new Set(),
+            new Map([["x", { description: "New." }]]),
+        );
+
+        expect(next[0]).toEqual(projects[0]);
+    });
+});

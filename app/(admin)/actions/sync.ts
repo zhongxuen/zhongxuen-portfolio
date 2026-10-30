@@ -10,9 +10,22 @@ import {
 } from "@/lib/admin/github";
 import { loadProjectsFile } from "@/lib/admin/projectStore";
 import { serializeProjects } from "@/lib/admin/serializeProjects";
-import { applySyncPlan, buildSyncPlan, planSize } from "@/lib/admin/syncDiff";
+import {
+    applySyncPlan,
+    buildSyncPlan,
+    planSize,
+    type NarrativeUpdate,
+} from "@/lib/admin/syncDiff";
+import { DraftInputError, draftNarrative } from "@/lib/admin/syncNarrative";
 import { getPortfolioRepos } from "@/services/githubService";
-import type { ActionResult } from "@/types/admin";
+import {
+    NARRATIVE_FIELDS,
+    NARRATIVE_LIST_FIELDS,
+    draftFieldName,
+    type ActionResult,
+    type DraftResult,
+    type SyncPlan,
+} from "@/types/admin";
 
 /**
  * Applies a reviewed GitHub sync plan (docs/admin-plan.md §7.4).
@@ -28,6 +41,13 @@ import type { ActionResult } from "@/types/admin";
  * The cost is that a repo pushed between rendering the page and pressing Apply
  * produces an entry whose id is not in the selection, so it is simply not applied.
  * That is the right failure: the operator reviews what they saw.
+ *
+ * **The one exception is drafted copy.** A model draft cannot be recomputed —
+ * the same prompt gives different words — and the operator may have edited it,
+ * so the kept text is posted. It is accepted only for activity entries that the
+ * rebuilt plan still lists and that were ticked, only for the narrative fields
+ * in `NARRATIVE_FIELDS`, and only within the length limits below. That is the
+ * same write the project editor already allows an authenticated session.
  */
 export async function applySync(
     _previous: ActionResult,
@@ -83,7 +103,13 @@ export async function applySync(
         };
     }
 
-    const updated = applySyncPlan(file.projects, plan, selected);
+    const drafts = readDrafts(formData, plan, selected);
+
+    if (typeof drafts === "string") {
+        return { status: "error", message: drafts };
+    }
+
+    const updated = applySyncPlan(file.projects, plan, selected, drafts);
 
     if (updated.length === file.projects.length && serializedUnchanged(file.projects, updated)) {
         return {
@@ -119,6 +145,125 @@ export async function applySync(
             message: describe(error, "The commit failed."),
         };
     }
+}
+
+/**
+ * Drafts an update to one entry's copy from its README and the commits since its
+ * last review. Writes nothing: the result goes back to the review form, where it
+ * is edited and ticked like any other entry before `applySync` commits it.
+ */
+export async function draftUpdate(slug: string): Promise<DraftResult> {
+    await verifySession();
+
+    let file;
+
+    try {
+        file = await loadProjectsFile();
+    } catch (error) {
+        return { status: "error", message: describe(error, "Could not read data/projects.ts.") };
+    }
+
+    const project = file.projects.find((candidate) => candidate.slug === slug);
+    const entry = project
+        ? buildSyncPlan([project], await getPortfolioRepos()).activity[0]
+        : undefined;
+
+    if (!project || !entry) {
+        return {
+            status: "error",
+            message: "That entry has no new work to draft from any more. Reload the page.",
+        };
+    }
+
+    try {
+        return { status: "success", draft: await draftNarrative(project, entry.githubRepo) };
+    } catch (error) {
+        if (error instanceof DraftInputError) {
+            return {
+                status: "error",
+                message: "The repository has no README and no commits to draft from.",
+            };
+        }
+
+        console.error("[admin/sync] draft failed", error);
+
+        return {
+            status: "error",
+            message:
+                "The draft failed — usually the AI Gateway is not configured (AI_GATEWAY_API_KEY locally; OIDC on Vercel) or the model is unavailable. The reason is in the logs. You can still mark the entry reviewed.",
+        };
+    }
+}
+
+const MAX_TEXT = { description: 300, longDescription: 8000 } as const;
+const MAX_ITEM = 800;
+const MAX_ITEMS = 40;
+
+/**
+ * Reads and validates the drafted copy the operator kept. Returns the updates by
+ * slug, or an error message naming the first field that failed.
+ *
+ * A field arrives only when its "keep" box is ticked: an unticked field's
+ * textarea is disabled, and disabled controls are not submitted.
+ */
+function readDrafts(
+    formData: FormData,
+    plan: SyncPlan,
+    selected: Set<string>,
+): Map<string, NarrativeUpdate> | string {
+    const drafts = new Map<string, NarrativeUpdate>();
+
+    for (const entry of plan.activity) {
+        if (!selected.has(`activity:${entry.slug}`)) {
+            continue;
+        }
+
+        const update: NarrativeUpdate = {};
+
+        for (const field of NARRATIVE_FIELDS) {
+            const raw = formData.get(draftFieldName(entry.slug, field));
+
+            if (raw === null) {
+                continue;
+            }
+
+            const value = String(raw);
+
+            if (NARRATIVE_LIST_FIELDS.includes(field)) {
+                const items = value
+                    .split(/\r?\n/)
+                    .map((item) => item.trim())
+                    .filter((item) => item.length > 0);
+
+                if (items.length > MAX_ITEMS || items.some((item) => item.length > MAX_ITEM)) {
+                    return `${entry.title}: ${field} is too long — at most ${MAX_ITEMS} items of ${MAX_ITEM} characters.`;
+                }
+
+                if (field === "technologies" && items.length === 0) {
+                    return `${entry.title}: technologies cannot be empty.`;
+                }
+
+                (update as Record<string, string[]>)[field] = items;
+            } else {
+                const text = value.trim();
+                const max = MAX_TEXT[field as keyof typeof MAX_TEXT];
+
+                if (field === "description" && text.length === 0) {
+                    return `${entry.title}: the description cannot be empty.`;
+                }
+
+                if (text.length > max) {
+                    return `${entry.title}: ${field} is longer than ${max} characters.`;
+                }
+
+                (update as Record<string, string>)[field] = text;
+            }
+        }
+
+        drafts.set(entry.slug, update);
+    }
+
+    return drafts;
 }
 
 /**

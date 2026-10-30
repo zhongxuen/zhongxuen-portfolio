@@ -1,7 +1,14 @@
 import { normalizeRepoKey } from "@/adapters/githubProjectAdapter";
 import { toProjectSlug } from "@/lib/admin/projectForm";
 import type { GitHubRepo } from "@/lib/github";
-import type { SyncAddition, SyncChange, SyncOrphan, SyncPlan } from "@/types/admin";
+import type {
+    NarrativeField,
+    SyncActivity,
+    SyncAddition,
+    SyncChange,
+    SyncOrphan,
+    SyncPlan,
+} from "@/types/admin";
 import type { Project } from "@/types/project";
 
 /**
@@ -57,6 +64,7 @@ export function buildSyncPlan(projects: Project[], repos: GitHubRepo[]): SyncPla
     }
 
     const changed: SyncChange[] = [];
+    const activity: SyncActivity[] = [];
     const orphaned: SyncOrphan[] = [];
 
     for (const project of projects) {
@@ -88,13 +96,15 @@ export function buildSyncPlan(projects: Project[], repos: GitHubRepo[]): SyncPla
         const homepage = match.homepage?.trim();
 
         /*
-         * A repo homepage that disagrees with the stored liveUrl. Proposed, not
-         * applied: the stored value wins today in
+         * A repo homepage that points somewhere else than the stored liveUrl.
+         * Proposed, not applied: the stored value wins today in
          * `adapters/githubProjectAdapter.ts` (`localProject.liveUrl ||
-         * githubFields.liveUrl`), and several entries deliberately point at a
-         * demo path — `?demo=1` — that the repo's homepage field does not carry.
+         * githubFields.liveUrl`). "Somewhere else" is judged by `samePage`, so an
+         * entry that deliberately links a demo path — `?demo=1` — or differs only
+         * by a trailing slash is not proposed for "correction" back to the bare
+         * homepage, which is the change that once stripped the GrabExpress demo.
          */
-        if (homepage && homepage !== project.liveUrl) {
+        if (homepage && !samePage(homepage, project.liveUrl)) {
             changed.push({
                 kind: "changed",
                 slug: project.slug,
@@ -102,6 +112,22 @@ export function buildSyncPlan(projects: Project[], repos: GitHubRepo[]): SyncPla
                 field: "liveUrl",
                 current: project.liveUrl,
                 proposed: homepage,
+            });
+        }
+
+        /*
+         * New work since the copy was last reviewed. An entry with no stamp has
+         * never been reviewed, so it is listed once; applying it stamps the
+         * current push and it stays quiet until the repo moves again.
+         */
+        if (!project.syncedAt || Date.parse(match.pushed_at) > Date.parse(project.syncedAt)) {
+            activity.push({
+                kind: "activity",
+                slug: project.slug,
+                title: project.title,
+                githubRepo: match.name,
+                ...(project.syncedAt ? { since: project.syncedAt } : {}),
+                pushedAt: match.pushed_at,
             });
         }
 
@@ -120,7 +146,7 @@ export function buildSyncPlan(projects: Project[], repos: GitHubRepo[]): SyncPla
         .filter((repo) => !claimed.has(repo.full_name))
         .map((repo) => proposeAddition(repo));
 
-    return { added, changed, orphaned };
+    return { added, changed, activity, orphaned };
 }
 
 /**
@@ -168,6 +194,27 @@ function proposeAddition(repo: GitHubRepo): SyncAddition {
     };
 }
 
+/**
+ * Whether a stored liveUrl already points at the repo's homepage: same origin
+ * and path, ignoring a trailing slash, with the stored URL free to add a query
+ * or hash (a demo entry point) the homepage field does not carry.
+ */
+function samePage(homepage: string, stored: string | undefined): boolean {
+    if (!stored) {
+        return false;
+    }
+
+    try {
+        const a = new URL(homepage);
+        const b = new URL(stored);
+        const path = (url: URL) => url.pathname.replace(/\/+$/, "");
+
+        return a.origin === b.origin && path(a) === path(b);
+    } catch {
+        return homepage === stored;
+    }
+}
+
 function titleCase(value: string): string {
     return value
         .split(/[-_\s]+/)
@@ -188,8 +235,30 @@ export function applySyncPlan(
     projects: Project[],
     plan: SyncPlan,
     selected: Set<string>,
+    drafts: Map<string, NarrativeUpdate> = new Map(),
 ): Project[] {
     let next = projects.map((project) => ({ ...project }));
+
+    /*
+     * An activity entry is applied as a review: the drafted copy the operator
+     * kept (if any) replaces those fields, and `syncedAt` moves to the push it
+     * was reviewed against. A draft for a slug the rebuilt plan no longer lists
+     * — or that was not ticked — is ignored, so a replayed form cannot write
+     * copy onto an entry that has nothing to review.
+     */
+    for (const entry of plan.activity) {
+        if (!selected.has(`activity:${entry.slug}`)) {
+            continue;
+        }
+
+        const update = drafts.get(entry.slug) ?? {};
+
+        next = next.map((project) =>
+            project.slug === entry.slug
+                ? { ...project, ...update, syncedAt: entry.pushedAt }
+                : project,
+        );
+    }
 
     for (const change of plan.changed) {
         if (!selected.has(`changed:${change.slug}:${change.field}`)) {
@@ -233,7 +302,10 @@ export function applySyncPlan(
     return next;
 }
 
+/** Drafted copy kept for one entry, already validated by the action. */
+export type NarrativeUpdate = Partial<Pick<Project, NarrativeField>>;
+
 /** Total entries a plan proposes acting on. Orphans are excluded — they are not actionable. */
 export function planSize(plan: SyncPlan): number {
-    return plan.added.length + plan.changed.length;
+    return plan.added.length + plan.changed.length + plan.activity.length;
 }

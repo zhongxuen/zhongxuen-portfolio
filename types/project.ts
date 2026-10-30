@@ -84,6 +84,15 @@ export interface Project {
     /** Manual sort priority; lower numbers appear first (optional, for curated ordering) */
     order?: number;
 
+    /**
+     * ISO timestamp of the repo push this entry's copy was last reviewed against.
+     * Written by the admin GitHub sync when an entry's new work is applied or
+     * marked reviewed; a repo pushed after it shows up on /admin/sync as "New
+     * work". Unlike `lastUpdated` below this is stored, because it records a
+     * human decision rather than a GitHub fact.
+     */
+    syncedAt?: string;
+
     // --- GitHub-derived fields (populated via githubProjectAdapter.ts when synced) ---
 
     /** Primary language reported by GitHub */

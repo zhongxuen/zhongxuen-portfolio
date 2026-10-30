@@ -94,13 +94,79 @@ export interface SyncOrphan {
     githubRepo: string;
 }
 
-export type SyncEntry = SyncAddition | SyncChange | SyncOrphan;
+/**
+ * A matched project whose repo has been pushed since its copy was last reviewed
+ * (`Project.syncedAt`), or that has never been reviewed at all.
+ *
+ * The plan carries only the fact; the commits and README behind it are fetched
+ * by the page (lib/admin/syncNarrative.ts), because `buildSyncPlan` stays pure.
+ */
+export interface SyncActivity {
+    kind: "activity";
+    slug: string;
+    title: string;
+    githubRepo: string;
+    /** The stored review stamp. Absent when the entry has never been reviewed. */
+    since?: string;
+    /** The repo's `pushed_at` — what applying this entry stamps as `syncedAt`. */
+    pushedAt: string;
+}
+
+export type SyncEntry = SyncAddition | SyncChange | SyncOrphan | SyncActivity;
 
 export interface SyncPlan {
     added: SyncAddition[];
     changed: SyncChange[];
+    activity: SyncActivity[];
     orphaned: SyncOrphan[];
 }
+
+/**
+ * The narrative fields a README-based draft may propose. Deliberately short:
+ * links, slug, order and screenshots are facts with their own owners, and
+ * `challenges` / `lessonsLearned` are reflection no README contains.
+ */
+export const NARRATIVE_FIELDS = [
+    "description",
+    "longDescription",
+    "technologies",
+    "keyFeatures",
+    "disclaimers",
+    "futureImprovements",
+] as const;
+
+export type NarrativeField = (typeof NARRATIVE_FIELDS)[number];
+
+/** Fields whose value is a list, edited one item per line. */
+export const NARRATIVE_LIST_FIELDS: readonly NarrativeField[] = [
+    "technologies",
+    "keyFeatures",
+    "disclaimers",
+    "futureImprovements",
+];
+
+/** One commit as the sync page shows it. */
+export interface SyncCommit {
+    sha: string;
+    url: string;
+    date: string;
+    /** First line of the message only. */
+    message: string;
+}
+
+/**
+ * A model-drafted update to one entry's copy, from its README and the commits
+ * since its last review. Only fields that should change are present.
+ */
+export interface NarrativeDraft {
+    /** One or two sentences on what changed in the project, for the reviewer. */
+    summary: string;
+    fields: Partial<Record<NarrativeField, string | string[]>>;
+}
+
+export type DraftResult =
+    | { status: "success"; draft: NarrativeDraft }
+    | { status: "error"; message: string };
 
 /**
  * Stable identifier for one entry of a `SyncPlan`, used as the checkbox value
@@ -112,6 +178,14 @@ export function syncEntryId(entry: SyncEntry): string {
     return entry.kind === "changed"
         ? `changed:${entry.slug}:${entry.field}`
         : `${entry.kind}:${entry.slug}`;
+}
+
+/**
+ * Form name of one drafted field's (edited) value for an activity entry. The
+ * apply action reads it only for slugs the server-rebuilt plan still lists.
+ */
+export function draftFieldName(slug: string, field: NarrativeField): string {
+    return `draft:${slug}:${field}`;
 }
 
 /**
