@@ -258,7 +258,7 @@ export const projects: Project[] = [
         ],
         githubUrl: "https://github.com/zhongxuen/GrabExpress-Receipt-Collector",
         githubRepo: "GrabExpress-Receipt-Collector",
-        liveUrl: "https://grab-express-receipt-collector-sigma.vercel.app/?demo=1",
+        liveUrl: "https://grab-express-receipt-collector-sigma.vercel.app",
         screenshots: ["/images/projects/grabexpress-demo.jpg"],
         keyFeatures: [
             "Google sign-in on the read-only Gmail scope, with the session in an encrypted cookie and no database",
@@ -345,7 +345,7 @@ export const projects: Project[] = [
         ],
         githubUrl: "https://github.com/zhongxuen/IT-ticket-helpdesk-system",
         githubRepo: "IT-ticket-helpdesk-system",
-        liveUrl: "https://it-ticket-helpdesk-system.vercel.app/",
+        liveUrl: "https://it-ticket-helpdesk-system.vercel.app",
         keyFeatures: [
             "Role-based access control across Admin, IT, Technician and Employee, enforced in Supabase row-level security rather than only in the UI",
             "Full ticket lifecycle: create, assign, update status, comment, resolve and reopen",
